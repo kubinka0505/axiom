@@ -1,0 +1,58 @@
+[tool.poetry]
+name = "axiom-audio" 
+version = "1.0"
+description = "Audio files parameters estimation."
+
+authors = ["kubinka0505"]
+
+license = "GPL-3.0-only"
+readme = "ReadMe.md"
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Typing :: Typed"
+]
+
+homepage = "https://github.com/kubinka0505/axiom"
+repository = "https://github.com/kubinka0505/axiom"
+documentation = "https://github.com/kubinka0505/axiom"
+
+keywords = [
+    "axiom",
+    "audio", "samplerate", "sample rate", "sampling rate", "cutoff", "channel", "channels", "peak",
+    "audio estimation", "samplerate estimation", "sample rate estimation", "sampling rate estimation",
+    "cutoff estimation", "channel estimation", "channels estimation", "peak estimation",
+    "audio detection", "samplerate detection", "sample rate detection", "sampling rate detection",
+    "cutoff detection", "channel detection", "channels detection", "peak detection"
+]
+
+[tool.poetry.dependencies]
+python = ">= 3.9"
+numpy = ">=1.26.4"
+scipy = ">= 1.12.0"
+librosa = ">= 0.10.2.post1"
+soundfile = ">= 0.12.1"
+pytimeparse = "> =1.1.8"
+mutagen = ">= 1.47.0"
+
+[tool.poetry.scripts]
+axiom = "axiom.cli_core:main"
+axiom-ai-prep = "axiom.ai.prep:main"
+axiom-ai-model = "axiom.ai.model:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.packages]]
+include = "src"
+from = "Files"
