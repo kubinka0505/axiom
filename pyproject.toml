@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axiom"
+version = "1.1"
+description = "Audio files parameters estimator."
+authors = [
+	{ name = "kubinka0505" }
+]
+
+readme = "ReadMe.md"
+
+license = "GPL-3.0-or-later"
+license-files = ["Licen[cs]e.*"]
+
+keywords = [
+	"signal", "signals", "sound", "audio",
+	"samplerate", "sample rate", "sample-rate",
+	"channels", "chans",
+	"bitdepth", "bit depth", "bit-depth",
+	"peak",
+	"analysis", "estimation", "detection"
+]
+
+classifiers = [
+	"Development Status :: 6 - Mature",
+
+	"Environment :: Console",
+
+	"Intended Audience :: Developers",
+	"Intended Audience :: End Users/Desktop",
+
+	"Natural Language :: English",
+
+	"Operating System :: OS Independent",
+
+	"Programming Language :: Python :: 3 :: Only",
+
+	"Topic :: Multimedia :: Sound/Audio",
+	"Topic :: Multimedia :: Sound/Audio :: Analysis",
+
+	"Typing :: Typed"
+]
+
+requires-python = ">= 3.10"
+
+dependencies = [
+	"scipy >= 1.12.0",
+	"numpy >= 1.26.4",
+
+	"librosa >= 0.10.2.post1",
+	"soundfile >= 0.12.1",
+
+	"mutagen >= 1.47.0",
+
+	"pydub >= 0.25.1",
+	"wavemarks@git+https://github.com/kubinka0505/wavemarks",
+
+	"torch", "tdqm",
+	"matplotlib",
+	"colorama >= 0.4.6",
+
+	"pytimeparse >= 1.1.8"
+]
+
+[project.urls]
+Homepage = "https://github.com/kubinka0505/axiom"
+Repository = "https://github.com/kubinka0505/axiom"
+Issues = "https://github.com/kubinka0505/axiom/issues"
+Changelog = "https://github.com/kubinka0505/axiom/blob/master/docs/ChangeLog.md"
+
+[project.scripts]
+axiom = "axiom._cli.main:main"
+axiom-ai = "axiom.ai._main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.coverage.run]
+omit = [
+	"*/axiom/_core/helpers/**",
+	"*/axiom/ai/**"
+]
