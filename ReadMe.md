@@ -45,8 +45,7 @@ This is why I built `axiom` — not to “improve” the sound<sup>1</sup>, but 
 1. [`git`](https://git-scm.com) (recommended)
 ```bash
 git clone https://github.com/kubinka0505/axiom
-cd axiom/Files
-python setup.py install
+python -m pip install -e .
 ```
 
 2. [`pip`](https://pypi.org/project/pip)
