@@ -369,7 +369,7 @@ def spectral_gate(
 	if cutoff is None:
 		return signal
 	else:
-		cutoff = abs(cutoff) * -1
+		cutoff = -abs(cutoff)
 
 	if bands is not None:
 		# shorthand
@@ -460,7 +460,6 @@ def trim_signal(
 		tuple:
 			(trimmed_signal, start, end)
 	"""
-
 	n_frames = signal.shape[-1]
 
 	if start < 0:
@@ -493,6 +492,109 @@ def trim_signal(
 		trimmed = signal[..., start:end:step]
 
 	return trimmed, start, end
+
+def truncate_signal(
+	signal: np.ndarray,
+	threshold_left: float = None,
+	threshold_right: float = None,
+	threshold_step: float = 5.0,
+) -> np.ndarray:
+	"""
+	Trim silence independently from the left and right side.
+
+	Parameters
+	----------
+	signal:
+		Array (mono or channel-first multi-channel).
+
+	threshold_left:
+		dB threshold for the left side.
+		None disables left trimming.
+
+	threshold_right:
+		dB threshold for the right side.
+		None disables right trimming.
+
+	threshold_step:
+		Amount by which to relax the threshold if no sample survives.
+	"""
+	if threshold_left:
+		threshold_left = abs(threshold_left)
+	else:
+		return signal
+
+	if threshold_right:
+		threshold_right = abs(threshold_right)
+	else:
+		return signal
+
+	threshold_step = abs(threshold_step)
+
+	if signal.ndim == 1:
+		amplitude = np.abs(signal)
+	else:
+		amplitude = np.max(np.abs(signal), axis = 0)
+
+	reference = np.max(amplitude)
+
+	if reference <= 0:
+		return signal
+
+	db = to_db(
+		np.maximum(
+			amplitude / reference,
+			np.finfo(float).tiny,
+		)
+	)
+
+	start = 0
+	end = signal.shape[-1]
+
+	# right
+	if threshold_left is not None:
+		current_threshold = -abs(float(threshold_left))
+
+		while True:
+			indices = np.flatnonzero(
+				(db >= current_threshold) &
+				(amplitude > 0)
+			)
+
+			if indices.size:
+				start = indices[0]
+				break
+
+			current_threshold += threshold_step
+
+			if current_threshold >= 0:
+				start = 0
+				break
+
+	# right
+	if threshold_right is not None:
+		current_threshold = -abs(float(threshold_right))
+
+		while True:
+			indices = np.flatnonzero(
+				(db >= current_threshold) &
+				(amplitude > 0)
+			)
+
+			if indices.size:
+				end = indices[-1] + 1
+				break
+
+			current_threshold += threshold_step
+
+			if current_threshold >= 0:
+				end = signal.shape[-1]
+				break
+
+	# forbid empty result
+	if start >= end:
+		return signal
+
+	return signal[..., start:end]
 
 def optimize_file_audio(file_input: str | BytesIO, level: int = 8) -> str:
 	file_input = str(file_input)

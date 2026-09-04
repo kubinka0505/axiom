@@ -3,8 +3,8 @@ import argparse
 from pathlib import Path
 
 from .._core.setup import *
-from .._core.helpers.numbers import to_readable
 from .._core.helpers.paths import normalize_path
+from .._core.helpers.numbers import to_readable, clamp
 
 #-=-=-=-#
 # Setup
@@ -117,6 +117,22 @@ group_processing.add_argument(
 	help = "Amounts of each samples to skip during analysis.\nCan speed up processing."
 )
 
+group_processing.add_argument(
+	"-tl", "--trim-threshold-left",
+	type = float,
+	metavar = "float",
+	default = float("inf"),
+	help = "Threshold (dBFS) of left side truncation. Empty samples are always removed if active. Active if not None."
+)
+
+group_processing.add_argument(
+	"-tr", "--trim-threshold-right",
+	type = float,
+	metavar = "float",
+	default = float("inf"),
+	help = "Threshold (dBFS) of right side truncation. Empty samples are always removed if active. Active if not None."
+)
+
 #-=-=-=-#
 # Sample rate processing
 
@@ -157,6 +173,7 @@ group_processing_sg.add_argument(
 
 #-=-=-=-#
 # Switch exlusions
+
 group_processing_switch.add_argument(
 	"-nsr", "--exclude-sample-rate",
 	action = "store_true",
@@ -354,5 +371,11 @@ if args.frequency_step is not None:
 
 if args.spectral_gate_cutoff is not None:
 	args.spectral_gate_cutoff = to_readable(args.spectral_gate_cutoff)
+
+if args.trim_threshold_left is not None:
+	args.trim_threshold_left = to_readable(args.trim_threshold_left)
+
+if args.trim_threshold_right is not None:
+	args.trim_threshold_right = to_readable(args.trim_threshold_right)
 
 #print(args)

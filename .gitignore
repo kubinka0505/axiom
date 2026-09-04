@@ -170,5 +170,9 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# Cusom
+*.bat
+util/*.py
+
 # Audio
 **/dataset*/*

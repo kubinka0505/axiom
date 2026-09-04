@@ -13,8 +13,6 @@ from .setup import (
 	DEFAULT_VALUE_FFT
 )
 
-from ..ai._core.core import predict
-
 from .helpers.numbers import clamp
 from .helpers.audio import to_db
 
@@ -82,6 +80,9 @@ class Estimators:
 				show = show_graph
 			)
 			return sr if not c else 2 * (int(c) if rounded else c)
+
+		# moved to fasten load times
+		from ..ai._core.core import predict
 
 		cutoff = predict((signal, sr), checkpoint_path, None, device)
 		samplerate = int(2 * cutoff)

@@ -11,12 +11,18 @@ Placebo for audiophiles, the successor of [soundless](https://github.com/kubinka
 <img src="https://raw.githubusercontent.com/kubinka0505/axiom/refs/heads/main/docs/img/Spectrograms/Graph.gif" width=350>
 
 ### Features ✨
-- Sample rate estimation
-  - No AI usage [by default](src/axiom/ai)
-- Bit depth estimation
-- Channel amount estimation
-- Bitrate calculation
-- dBFS peak estimation
+- Estimation of:
+  - Sample rate
+    - No AI usage [by default](src/axiom/ai)
+  - Bit depth
+  - Channel count
+  - Bitrate (calculation)
+  - dBFS peak
+- Writing to output with:
+  - Cross-extension metadata copying
+  - Post-processing effects:
+    - Spectral gate
+    - Silence removal (trim)
 
 > [!NOTE]
 > For more explanations, please consider visiting [frequently asked questions](wiki/FAQ) wiki page.
@@ -39,16 +45,9 @@ This is why I built `axiom` — not to “improve” the sound<sup>1</sup>, but 
 ### Roadmap 🏁
 - [ ] Bug fixing 🐛
 - [ ] Writing to multiple files 🔢
-- [x] Cross-extension metadata copying 🔀
 
 ## Installation 🖥️
-1. [`git`](https://git-scm.com) (recommended)
-```bash
-git clone https://github.com/kubinka0505/axiom
-python -m pip install -e .
-```
-
-2. [`pip`](https://pypi.org/project/pip)
+1. [`pip`](https://pypi.org/project/pip) (reccomended)
 ```bash
 python -m pip install git+https://github.com/kubinka0505/axiom -U
 ```

@@ -12,9 +12,9 @@ def main():
 	try:
 		axiom = Axiom(args.inputs, recursive = args.recursive)
 
-		for file_index, file in enumerate(axiom.files):
+		for idx, file in enumerate(axiom.files):
 			process_file(
-				file_index,
+				idx,
 				file,
 				len(axiom.files),
 				args

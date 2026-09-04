@@ -10,11 +10,12 @@ from ._core.helpers.audio import (
 	to_samples,
 	extend_signal,
 	trim_signal,
+	truncate_signal,
 	spectral_gate
 )
 
 from ._core.helpers.paths import normalize_path
-from ._core.algorithms import Estimators as Estimators
+from ._core.algorithms import Estimators
 
 import warnings
 import numpy as np
@@ -80,6 +81,10 @@ class Axiom:
 
 		spectral_gate_cutoff_db: float = None,
 		spectral_gate_bands: list[list[float]] | None = None,
+
+		trim_threshold_left: float = None,
+		trim_threshold_right: float = None,
+
 		checkpoint_path: str = None,
 
 		n_fft: int = None,
@@ -118,12 +123,12 @@ class Axiom:
 					if len(subtype_splitted) > 1 and subtype_splitted[-1].isdigit():
 						bit_depth = int(subtype_splitted[-1])
 
-			# --- audio.py's trim/extend/spectral_gate all expect channel-first
-			# --- (channels, frames), but signal here is (frames, channels).
-			# --- Transpose there and back around that trio of calls.
-			signal_cf = signal.T  # (n_channels, n_frames)
+			# audio.py's trim/extend/spectral_gate all expect channel-first
+			# (channels, frames), but signal here is (frames, channels).
+			# Transpose there and back around that trio of calls.
+			signal_cf = signal.T # (n_channels, n_frames)
 
-			# --- TRIM FIRST (correct axis: frames, now the last axis) ---
+			# TRIM FIRST (correct axis: frames, now the last axis)
 			signal_cf, _, _ = trim_signal(
 				signal_cf,
 				start = to_samples(start or 0, sr),
@@ -132,16 +137,16 @@ class Axiom:
 				max_duration = n_frames,
 			)
 
-			# --- NORMALIZE EARLY (stable estimators + gating) ---
+			# NORMALIZE EARLY (stable estimators + gating) ---
 			signal_cf = signal_cf / (np.max(np.abs(signal_cf)) + 1e-12)
 
-			# --- EXTEND AFTER NORMALIZATION ---
+			# EXTEND AFTER NORMALIZATION
 			target_len = int(min(SAMPLE_MIN_EXTEND, SAMPLE_LARGE))
 
 			if signal_cf.shape[-1] < target_len:
 				signal_cf = extend_signal(signal_cf, target_len)
 
-			# --- SPECTRAL GATE (AFTER FIXING SHAPE) ---
+			# SPECTRAL GATE (AFTER FIXING SHAPE)
 			if spectral_gate_cutoff_db is not None:
 				signal_cf = spectral_gate(
 					signal_cf,
@@ -150,12 +155,19 @@ class Axiom:
 					bands = spectral_gate_bands
 				)
 
-			# --- back to (frames, channels) for Estimators ---
+			# back to (frames, channels) for Estimators
 			signal_trimmed = signal_cf.T
+
+			if trim_threshold_left is not None and trim_threshold_right is not None:
+				signal_trimmed = truncate_signal(
+					signal_trimmed,
+					threshold_left = trim_threshold_left,
+					threshold_right = trim_threshold_right
+				)
 
 			result = {}
 
-			# ---------------- SAMPLERATE ----------------
+			# SAMPLERATE
 			if include_samplerate:
 				estimated_sr = Estimators.sample_rate(
 					signal_trimmed,
@@ -172,7 +184,7 @@ class Axiom:
 					"cutoff": estimated_sr / 2
 				})
 
-			# ---------------- BIT DEPTH ----------------
+			# BIT DEPTH
 			if include_bit_depth:
 				estimated_bit_depth = Estimators.bit_depth(signal_trimmed)
 				estimated_bit_depth = estimated_bit_depth if estimated_bit_depth else bit_depth
@@ -182,13 +194,13 @@ class Axiom:
 					"bit depth snapped": snap(estimated_bit_depth, DEPTHS_BIT)
 				})
 
-			# ---------------- CHANNELS ----------------
+			# CHANNELS
 			estimated_channels = Estimators.channels(signal_trimmed)
 
 			if include_channels:
 				result.update({"channels": estimated_channels})
 
-			# ---------------- BITRATE ----------------
+			# BITRATE
 			if include_bitrate:
 				if include_samplerate and include_bit_depth and include_channels:
 					estimated_bitrate = Estimators.bit_rate(
@@ -201,7 +213,7 @@ class Axiom:
 				else:
 					warnings.warn("Bitrate estimation requires samplerate, bit depth, and channels")
 
-			# ---------------- PEAK ----------------
+			# PEAK
 			if include_peak:
 				estimated_peak = Estimators.peak(signal_trimmed)
 				result.update({"peak": estimated_peak})
@@ -218,6 +230,10 @@ class Axiom:
 
 		spectral_gate_cutoff_db: float = None,
 		spectral_gate_bands: list[list[float]] | None = None,
+
+		trim_threshold_left: float = None,
+		trim_threshold_right: float = None,
+
 		checkpoint_path: str = None,
 
 		freq_step: int = None,
@@ -262,6 +278,10 @@ class Axiom:
 
 			spectral_gate_cutoff_db = spectral_gate_cutoff_db,
 			spectral_gate_bands = spectral_gate_bands,
+
+			trim_threshold_left = None,
+			trim_threshold_right = None,
+
 			checkpoint_path = checkpoint_path,
 
 			n_fft = None,

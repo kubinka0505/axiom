@@ -24,6 +24,7 @@ from .._core.helpers.audio import (
 	perceptual_difference,
 	resample_signal,
 	extend_signal,
+	truncate_signal,
 	trim_signal,
 	spectral_gate,
 	bit_depth_to_subtype,
@@ -64,7 +65,7 @@ def process_file(
 	--------
 		1. Load an audio file
 		2. Extract metadata
-		3. Apply chunking and optional trimming, 
+		3. Apply chunking and optional trimming
 		4. Normalize the audio
 		5. Estimate sample rate
 		6. Estimate channel count
@@ -178,6 +179,15 @@ def process_file(
 			bands = _parse_bands(args.spectral_gate_bands)
 		)
 
+	if args.trim_threshold_left is not None and args.trim_threshold_right is not None:
+		logger.debug("Trimming signal")
+
+		signal_trimmed = truncate_signal(
+			signal_trimmed,
+			threshold_left = args.trim_threshold_left,
+			threshold_right = args.trim_threshold_right
+		)
+
 	logger.debug("Normalizing signal")
 
 	signal_trimmed_max = signal_trimmed / (
@@ -266,7 +276,10 @@ def process_file(
 		#estimated_bit_depth = 32
 		estimated_bit_depth = Estimators.bit_depth(signal_trimmed_max)
 
-	estimated_bit_depth_snapped = snap(estimated_bit_depth, DEPTHS_BIT)
+	if args.spectral_gate_cutoff is None:
+		estimated_bit_depth_snapped = snap(estimated_bit_depth, DEPTHS_BIT)
+	else:
+		estimated_bit_depth_snapped = 32
 
 	# channels
 	if args.exclude_channels:
@@ -820,7 +833,7 @@ def write_file(
 			tmp_path = tmp.name
 
 		try:
-			sf.write(tmp_path, signal, sr)
+			sf.write(tmp_path, signal, sr, subtype = subtype)
 			data, rate = sf.read(tmp_path)
 
 			kwargs = {
@@ -832,7 +845,6 @@ def write_file(
 				kwargs["subtype"] = subtype
 
 			sf.write(output_path, data, **kwargs)
-
 		finally:
 			if os.path.exists(tmp_path):
 				os.remove(tmp_path)
