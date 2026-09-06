@@ -1,16 +1,17 @@
 import time
+import logging
 from datetime import timedelta
 
-from ..__main__ import Axiom
+from .._core.main import Axiom
 
-from .helper import process_file
+from .helper import process_file, clear_colored_text_file
 from .setup import *
 
 def main():
 	__START = time.time()
 
 	try:
-		axiom = Axiom(args.inputs, recursive = args.recursive)
+		axiom = Axiom(args.file_input, recursive = args.recursive)
 
 		for idx, file in enumerate(axiom.files):
 			process_file(
@@ -27,6 +28,14 @@ def main():
 				time = str(timedelta(seconds = time.time() - __START))[2:-3],
 			)
 		)
+
+		# clear all logger file handlers
+		for handler in logger.handlers:
+			if isinstance(handler, logging.FileHandler):
+				file_path = handler.baseFilename
+
+				if os.path.exists(file_path):
+					clear_colored_text_file(file_path)
 	except KeyboardInterrupt:
 		msg = "Operation interrupted by user."
 

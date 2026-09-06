@@ -22,7 +22,7 @@ Placebo for audiophiles, the successor of [soundless](https://github.com/kubinka
   - Cross-extension metadata copying
   - Post-processing effects:
     - Spectral gate
-    - Silence removal (trim)
+    - Silence removal (trim, dBFS/empty samples)
 
 > [!NOTE]
 > For more explanations, please consider visiting [frequently asked questions](wiki/FAQ) wiki page.

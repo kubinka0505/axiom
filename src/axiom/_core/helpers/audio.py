@@ -495,36 +495,36 @@ def trim_signal(
 
 def truncate_signal(
 	signal: np.ndarray,
-	threshold_left: float = None,
-	threshold_right: float = None,
+	threshold_start: float = None,
+	threshold_end: float = None,
 	threshold_step: float = 5.0,
 ) -> np.ndarray:
 	"""
-	Trim silence independently from the left and right side.
+	Trims silence independently from the left and right side.
 
 	Parameters
 	----------
 	signal:
 		Array (mono or channel-first multi-channel).
 
-	threshold_left:
+	threshold_start:
 		dB threshold for the left side.
 		None disables left trimming.
 
-	threshold_right:
+	threshold_end:
 		dB threshold for the right side.
 		None disables right trimming.
 
 	threshold_step:
 		Amount by which to relax the threshold if no sample survives.
 	"""
-	if threshold_left:
-		threshold_left = abs(threshold_left)
+	if threshold_start:
+		threshold_start = abs(threshold_start)
 	else:
 		return signal
 
-	if threshold_right:
-		threshold_right = abs(threshold_right)
+	if threshold_end:
+		threshold_end = abs(threshold_end)
 	else:
 		return signal
 
@@ -551,8 +551,8 @@ def truncate_signal(
 	end = signal.shape[-1]
 
 	# right
-	if threshold_left is not None:
-		current_threshold = -abs(float(threshold_left))
+	if threshold_start is not None:
+		current_threshold = -abs(float(threshold_start))
 
 		while True:
 			indices = np.flatnonzero(
@@ -571,8 +571,8 @@ def truncate_signal(
 				break
 
 	# right
-	if threshold_right is not None:
-		current_threshold = -abs(float(threshold_right))
+	if threshold_end is not None:
+		current_threshold = -abs(float(threshold_end))
 
 		while True:
 			indices = np.flatnonzero(

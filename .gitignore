@@ -172,7 +172,12 @@ pyrightconfig.json
 
 # Cusom
 *.bat
-util/*.py
+*.wav
+*.flac
+*.mp3
+*.ogg
+util/*[pypi].py
 
 # Audio
+**/logs*/*
 **/dataset*/*

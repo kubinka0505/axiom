@@ -1,6 +1,9 @@
 import os
 import argparse
+import datetime
 from pathlib import Path
+
+from ..__init__ import __title__
 
 from .._core.setup import *
 from .._core.helpers.paths import normalize_path
@@ -43,7 +46,7 @@ group_switch_basic = parser.add_argument_group("Basic switch arguments")
 # Required
 
 group_required.add_argument(
-	"-i", "--inputs",
+	"-i", "--file-input",
 	type = str,
 	metavar = '"str"',
 	nargs = "*",
@@ -55,7 +58,7 @@ group_required.add_argument(
 # Optional
 
 group_optional.add_argument(
-	"-o", "--output",
+	"-o", "--file-output",
 	type = str,
 	metavar = '"str"',
 	default = None,
@@ -85,6 +88,14 @@ group_optional.add_argument(
 	default = 0,
 	choices = (-1, 0, 1, 2),
 	help = "Enables verbose logging.\n* `-1` for quiet\n* `0` for simple prints\n* `1` for beautified output.\n* `2` for advanced output."
+)
+
+group_optional.add_argument(
+	"-ol", "--directory-output-log",
+	type = str,
+	metavar = '"str"',
+	default = None,
+	help = "Path for log directory with appropriately formatted date. Automatically disabled if verbosity < 1."
 )
 
 #-=-=-=-#
@@ -118,19 +129,19 @@ group_processing.add_argument(
 )
 
 group_processing.add_argument(
-	"-tl", "--trim-threshold-left",
+	"-tl", "--trim-threshold-start",
 	type = float,
 	metavar = "float",
 	default = float("inf"),
-	help = "Threshold (dBFS) of left side truncation. Empty samples are always removed if active. Active if not None."
+	help = "Threshold (dBFS) of start side truncation. Empty samples are always removed if active. Active if not None."
 )
 
 group_processing.add_argument(
-	"-tr", "--trim-threshold-right",
+	"-tr", "--trim-threshold-end",
 	type = float,
 	metavar = "float",
 	default = float("inf"),
-	help = "Threshold (dBFS) of right side truncation. Empty samples are always removed if active. Active if not None."
+	help = "Threshold (dBFS) of end side truncation. Empty samples are always removed if active. Active if not None."
 )
 
 #-=-=-=-#
@@ -251,7 +262,7 @@ args = parser.parse_args()
 #-=-=-=-#
 # Settings
 
-if _all_excluded(args, group_processing_switch, "estimate") and not args.output:
+if _all_excluded(args, group_processing_switch, "estimate") and not args.file_output:
 	logger.error("Nothing to estimate.")
 	raise SystemExit(1)
 
@@ -281,19 +292,19 @@ if not args.exclude_bit_rate:
 if args.exclude_bit_rate:
 	args._calculate_bitrate = False
 
-if not args.inputs[0]:
-	args.inputs = choose_files_dialog()
+if not args.file_input[0]:
+	args.file_input = choose_files_dialog()
 
-	if not args.inputs:
+	if not args.file_input:
 		logger.error("No inputs selected.")
 		raise SystemExit(1)
 
-args.inputs = [f for f in args.inputs if f]
+args.file_input = [f for f in args.file_input if f]
 
 # normalize all paths
 expanded = []
 
-for item in args.inputs:
+for item in args.file_input:
 	item = normalize_path(item, relative = False)
 	expanded.append(item)
 
@@ -326,17 +337,37 @@ if not filtered:
 	logger.error("No valid input files found.")
 	raise SystemExit(1)
 
-args.inputs = sorted(set(filtered))
+args.file_input = sorted(set(filtered))
 
-if args.output and len(os.path.splitext(args.output)) < 2 and not os.path.exists(args.output):
+if args.file_output and len(os.path.splitext(args.file_output)) < 2 and not os.path.exists(args.file_output):
 	if args.force:
-		os.makedirs(args.output, exist_ok = True)
+		os.makedirs(args.file_output, exist_ok = True)
 	else:
 		logger.error("Output directory doesn't exist. Use --force flag to create it.")
 		raise SystemExit(1)
 
 #-=-=-=-#
 # Verbosity
+
+if args.verbosity > 0 and args.directory_output_log:
+	os.makedirs(args.directory_output_log, exist_ok = True)
+
+	elems = [
+		__title__,
+		*datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S").split()
+	]
+	elems = [elem for elem in elems if elem]
+
+	handler_file = logging.FileHandler(os.path.join(
+		args.directory_output_log,
+		"_".join(elems) + ".log"
+	))
+
+	handler_file.setFormatter(logging.Formatter(
+		"[%(asctime)s] [%(levelname)s] %(message)s"
+	))
+
+	logger.addHandler(handler_file)
 
 if args.verbosity > 1:
 	logger.setLevel(logging.DEBUG)
@@ -345,7 +376,7 @@ elif args.verbosity > 0:
 elif args.verbosity < 0:
 	logger.setLevel(logging.CRITICAL)
 
-if len(args.inputs) > 1 and args.verbosity > -1 and args.output != "":
+if len(args.file_input) > 1 and args.verbosity > -1 and args.file_output != "":
 	logger.error("Can't write to more than 1 file. Performing analysis only.")
 
 	logger.info(
@@ -372,10 +403,10 @@ if args.frequency_step is not None:
 if args.spectral_gate_cutoff is not None:
 	args.spectral_gate_cutoff = to_readable(args.spectral_gate_cutoff)
 
-if args.trim_threshold_left is not None:
-	args.trim_threshold_left = to_readable(args.trim_threshold_left)
+if args.trim_threshold_start is not None:
+	args.trim_threshold_start = to_readable(args.trim_threshold_start)
 
-if args.trim_threshold_right is not None:
-	args.trim_threshold_right = to_readable(args.trim_threshold_right)
+if args.trim_threshold_end is not None:
+	args.trim_threshold_end = to_readable(args.trim_threshold_end)
 
 #print(args)

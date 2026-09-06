@@ -152,10 +152,10 @@ class Logger:
 		return getattr(self.logger, name)
 
 # Configure logger
-logger = Logger(logging.getLogger("axiom")) # __title__ caused some bugs
+logger = Logger(logging.getLogger("axiom"))
 logger.setLevel(logging.NOTSET)
 
-ch = logging.StreamHandler()
-ch.setFormatter(ColorFormatter("[%(levelname)s] %(message)s"))
-
-logger.addHandler(ch)
+# Console
+handler_console = logging.StreamHandler()
+handler_console.setFormatter(ColorFormatter("[%(levelname)s] %(message)s"))
+logger.addHandler(handler_console)

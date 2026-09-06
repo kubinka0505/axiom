@@ -31,9 +31,10 @@ from .._core.helpers.audio import (
 	optimize_file_audio
 )
 
-from ..__main__ import Estimators
+from .._core.main import Estimators
 
 import os
+import re
 import tempfile
 from datetime import timedelta
 from wavemarks import MarkerFile
@@ -52,7 +53,7 @@ import soundfile as sf
 # Main
 
 def process_file(
-	index: int,
+	idx: int,
 	file: str,
 	total: int,
 
@@ -75,7 +76,7 @@ def process_file(
 
 	Parameters
 	----------
-		index (int):
+		idx (int):
 			The index of the current file in the batch.
 
 		file (str):
@@ -92,6 +93,7 @@ def process_file(
 		ValueError:
 			If the computed chunk range is invalid (e.g., start >= end).
 	"""
+	logger.info("Progress", f"{idx + 1}/{total} [{percentage(idx + 1, total):.2f}%]")
 	logger.info("Loaded file:", file)
 
 	# Load file
@@ -179,13 +181,13 @@ def process_file(
 			bands = _parse_bands(args.spectral_gate_bands)
 		)
 
-	if args.trim_threshold_left is not None and args.trim_threshold_right is not None:
+	if args.trim_threshold_start is not None and args.trim_threshold_end is not None:
 		logger.debug("Trimming signal")
 
 		signal_trimmed = truncate_signal(
 			signal_trimmed,
-			threshold_left = args.trim_threshold_left,
-			threshold_right = args.trim_threshold_right
+			threshold_start = args.trim_threshold_start,
+			threshold_end = args.trim_threshold_end
 		)
 
 	logger.debug("Normalizing signal")
@@ -334,10 +336,10 @@ def process_file(
 
 		print(val.strip())
 
-	do_write = should_write_output(index, args)
+	do_write = should_write_output(idx, args)
 
 	output_path = None
-	if args.output:
+	if args.file_output:
 		output_path = get_output_path(file, args)
 
 	err_maps = {
@@ -424,7 +426,7 @@ def process_file(
 				reset = Fore.RESET
 			)
 		)
-	elif args.output:
+	elif args.file_output:
 		logger.warning("Output not written", err_maps[err_code])
 		logger.warning("Use --force flag to bypass it.")
 
@@ -540,7 +542,7 @@ def log_estimates(
 			"Estimated bit depth:",
 			"{color_value}{estimated_bit_depth} bits{reset} {_normalize_notice}".format(
 				estimated_bit_depth = estimated_bit_depth,
-				_normalize_notice = _norm_bd, # if args.output else "",
+				_normalize_notice = _norm_bd, # if args.file_output else "",
 
 				color_value = Fore.ORANGE,
 				reset = Fore.RESET
@@ -888,6 +890,24 @@ def write_file(
 #-=-=-=-#
 # Helpers
 
+def clear_colored_text_file(path: str) -> str:
+	with open(path, "r", encoding = "UTF-8") as file:
+		content = file.read()
+
+	lines = [line for line in content.split("\n") if line.strip()]
+	lines = [re.compile(r"\x1b\[[0-9;]*m").sub("", line) for line in lines]
+	lines = [re.sub(r"\x1b\[(?:0|39)m", "\n", line) for line in lines]
+	lines = [re.sub(r"\x1b\[[0-9;]*m", "", line) for line in lines]
+	lines = [line.strip() for line in lines]
+
+	# Remove empty lines
+	content = "\n".join(lines).strip()
+
+	with open(path, "w", encoding = "UTF-8") as file:
+		file.write(content)
+
+	return path
+
 def _parse_bound(v) -> float:
 	if isinstance(v, (int, float)):
 		if v == -1:
@@ -955,17 +975,17 @@ def should_write_output(file_index: int, args) -> bool:
 			True if output should be written, False otherwise.
 	"""
 	# overwrite in-place
-	if args.output is None:
+	if args.file_output is None:
 		return False
 
-	if args.output == "":
+	if args.file_output == "":
 		if not args.exclude_sample_rate:
 			return True
 
 		return False
 
 	# output is file & multiple inputs – skip all but the first
-	if len(args.inputs) > 1 and not os.path.isdir(args.output):
+	if len(args.file_input) > 1 and not os.path.isdir(args.file_output):
 		if file_index != 0:
 			return False
 
@@ -975,7 +995,7 @@ def should_write_output(file_index: int, args) -> bool:
 		return False
 
 	# write all qualifying files if output is directory
-	if os.path.isdir(args.output):
+	if os.path.isdir(args.file_output):
 		if not args.exclude_sample_rate:
 			return True
 
@@ -1000,11 +1020,11 @@ def get_output_path(file: str, args) -> str:
 		str:
 			Path to write the output audio file.
 	"""
-	retval = args.output
+	retval = args.file_output
 
-	if args.output == "":
+	if args.file_output == "":
 		retval = file
-	elif os.path.isdir(args.output):
-		retval = os.path.join(args.output, os.path.basename(file))
+	elif os.path.isdir(args.file_output):
+		retval = os.path.join(args.file_output, os.path.basename(file))
 
 	return retval
