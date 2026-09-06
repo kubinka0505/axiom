@@ -93,7 +93,7 @@ def process_file(
 		ValueError:
 			If the computed chunk range is invalid (e.g., start >= end).
 	"""
-	logger.info("Progress", f"{idx + 1}/{total} [{percentage(idx + 1, total):.2f}%]")
+	logger.info("Progress:", f"{idx + 1}/{total} [{percentage(idx + 1, total):.2f}%]")
 	logger.info("Loaded file:", file)
 
 	# Load file
@@ -169,16 +169,21 @@ def process_file(
 		signal_trimmed = extend_signal(signal_trimmed, target_len)
 
 	if args.spectral_gate_cutoff is not None:
+		parsed_bands = _parse_bands(args.spectral_gate_bands, max_sr = sr)
+
 		logger.info(
 			"Applying spectral gate",
 			f"{args.spectral_gate_cutoff:.2f} dB cutoff"
 		)
 
+		for band in parsed_bands:
+			logger.info("Spectral gate bands", str(parsed_bands.index(band) + 1) + ": " + " → ".join((str(x) for x in band)) + " [Hz]")
+
 		signal_trimmed = spectral_gate(
 			signal_trimmed,
 			sr,
 			cutoff = args.spectral_gate_cutoff,
-			bands = _parse_bands(args.spectral_gate_bands)
+			bands = parsed_bands
 		)
 
 	if args.trim_threshold_start is not None and args.trim_threshold_end is not None:
@@ -281,7 +286,8 @@ def process_file(
 	if args.spectral_gate_cutoff is None:
 		estimated_bit_depth_snapped = snap(estimated_bit_depth, DEPTHS_BIT)
 	else:
-		estimated_bit_depth_snapped = 32
+		# change to 32 if needed
+		estimated_bit_depth_snapped = 24
 
 	# channels
 	if args.exclude_channels:
@@ -303,8 +309,11 @@ def process_file(
 	else:
 		estimated_bitrate = bitrate
 
-	logger.debug("Estimating peak")
-	estimated_peak = Estimators.peak(signal_trimmed_max, "dB", 3) if not args.exclude_peak else ""
+	if args.exclude_peak:
+		estimated_peak = ""
+	else:
+		logger.debug("Estimating peak")
+		estimated_peak = Estimators.peak(signal_trimmed_max, "dB", 3)
 
 	log_estimates(
 		original_sample_rate = sr,
@@ -928,7 +937,7 @@ def _parse_bound(v) -> float:
 
 	return val
 
-def _parse_bands(input_map: str, delim_parts: str = ":", delim_vals: str = ",") -> list:
+def _parse_bands(input_map: str, delim_parts: str = ":", delim_vals: str = ",", max_sr: int = None) -> list:
 	if not input_map:
 		return None
 
@@ -945,6 +954,9 @@ def _parse_bands(input_map: str, delim_parts: str = ":", delim_vals: str = ",") 
 			high = -1
 		else:
 			high = _parse_bound(parts[1])
+
+		if max_sr and high == float("inf"):
+			high = max_sr
 
 		bands.append((low, high))
 

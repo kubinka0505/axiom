@@ -8,7 +8,7 @@
 ## Description 📝
 Placebo for audiophiles, the successor of [soundless](https://github.com/kubinka0505/soundless) and one of a kind software.
 
-<img src="https://raw.githubusercontent.com/kubinka0505/axiom/refs/heads/main/docs/img/Spectrograms/Graph.gif" width=350>
+<img src="https://raw.githubusercontent.com/kubinka0505/axiom/refs/heads/main/docs/img/Spectrograms/Graph.gif" width=400>
 
 ### Features ✨
 - Estimation of:
@@ -132,6 +132,7 @@ user$os:~
 user$os:~ $ # Start analysis from 2 seconds (-ss 2.5s) for 25000 samples (-to 25000)
 user$os:~ $ # with recursive processing (-r) and verbose output (-v 2)
 user$os:~ $ axiom -i "../dir" -ss 2s -to 25000 -f -r -v 1
+[INFO] Progress:                        1/1 [100.00%]
 [INFO] Loaded file:                     file_18400.wav
 [INFO] Information:                     44100 Hz, 28680 samples (00:00.650), Mono, 56.09 KB
 [INFO] ----------

@@ -120,13 +120,13 @@ shell_hooks.relcd(os.path.join(name_process, name_process + name_globalPipeline)
 shell_hooks.relcd(os.path.join("Shell", "01_SG100"))
 shell_hooks.make()
 
-shell_hooks[""] = "Spectral Gate (Fullband, -100 dB) → Channel Detection → FLAC"
+shell_hooks[""] = "Spectral Gate (Fullband, -100 dB) → Channel Detection → FLAC (Optimized)"
 shell_hooks["Icon"] = ",".join(("NetCenter.dll", "-19"))
 
 shell_hooks.relcd("command")
 shell_hooks.make()
 
-shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1.flac" -gc 100 -ol "logs" -nsr -nbd -nc -nbr -np -v -1'
+shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1.flac" -gc 100 -ol "logs" -nsr -nbd -nc -nbr -np -v 2'
 shell_hooks.relcd(os.path.join(os.pardir, os.pardir)) # exit current command
 
 #---
@@ -150,7 +150,7 @@ shell_hooks["Icon"] = ",".join(("NetCenter.dll", "-18"))
 shell_hooks.relcd("command")
 shell_hooks.make()
 
-shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 90 -nsr -nbd -nc -nbr -np -v -1'
+shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 90 -nsr -nbd -nc -nbr -np -v 2'
 shell_hooks.relcd(os.path.join(os.pardir, os.pardir)) # exit current command
 
 #---
@@ -176,7 +176,7 @@ shell_hooks["Icon"] = ",".join(("NetCenter.dll", "-17"))
 shell_hooks.relcd("command")
 shell_hooks.make()
 
-shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 80 -nsr -nbd -nbr -np -v -1'
+shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 80 -nsr -nbd -nbr -np -v 2'
 shell_hooks.relcd(os.path.join(os.pardir, os.pardir)) # exit current command
 
 #---
@@ -196,14 +196,14 @@ shell_hooks.relcd(os.path.join(name_process, name_process + name_globalPipeline)
 shell_hooks.relcd(os.path.join("Shell", "04_SG_NORM0"))
 shell_hooks.make()
 
-shell_hooks[""] = "Spectral Gate (Fullband, -100 dB) → Channel Detection → Normalize (-0 dBFS) → FLAC"
+shell_hooks[""] = "Spectral Gate (Fullband, -90 dB) → Channel Detection → Normalize (-0 dBFS) → FLAC (Optimized)"
 shell_hooks["CommandFlags"] = "8"
 shell_hooks["Icon"] = ",".join(("TaskMgr.exe", "-30663"))
 
 shell_hooks.relcd("command")
 shell_hooks.make()
 
-shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1.flac" -gc 100 -norm -nsr -nbd -nbr -np -v -1'
+shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1.flac" -gc 90 -norm 0 -nsr -nbd -nbr -np -v 2'
 shell_hooks.relcd(os.path.join(os.pardir, os.pardir)) # exit current command
 
 #---
