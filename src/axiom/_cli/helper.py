@@ -93,7 +93,11 @@ def process_file(
 		ValueError:
 			If the computed chunk range is invalid (e.g., start >= end).
 	"""
-	logger.info("Progress:", f"{idx + 1}/{total} [{percentage(idx + 1, total):.2f}%]")
+	logger.info(
+		"Progress:",
+		f"{idx + 1}/{total} [{percentage(idx + 1, total):.2f}%]"
+	)
+
 	logger.info("Loaded file:", file)
 
 	# Load file
@@ -109,13 +113,16 @@ def process_file(
 		n_channels = f.channels
 
 		bit_depth = 32 # FLOAT
+
 		if "_" in subtype_string:
 			subtype_splitted = subtype_string.split("_")
 
 			if len(subtype_splitted) > 1 and subtype_splitted[-1].isdigit():
-				bit_depth = subtype_splitted[-1] # invalid on FLAC, as 24-bit do exist
+				bit_depth = subtype_splitted[-1]
 
-		bit_depth = int(bit_depth) # if args.spectral_gate_cutoff is None else 32
+		# invalid on FLAC, as 24-bit does exist
+		bit_depth = int(bit_depth)
+
 		bitrate = sr * bit_depth * n_channels
 
 	if not signal.size:
@@ -123,6 +130,7 @@ def process_file(
 		raise SystemExit(1)
 
 	channels_display = "Mono"
+
 	if n_channels > 1:
 		channels_display = "Stereo"
 	if n_channels > 2:
@@ -130,9 +138,14 @@ def process_file(
 
 	logger.info(
 		"Information:",
-		"{color_sr}{sr} Hz{reset}, {samples} samples ({color_meta}{time}{reset}), {color_channels}{channels}{reset}, {color_size}{size}{reset}".format(
+		"{color_sr}{sr} Hz{reset}, "
+		"{samples} samples "
+		"({color_meta}{time}{reset}), "
+		"{color_channels}{channels}{reset}, "
+		"{color_size}{size}{reset}".format(
 			sr = sr,
 			samples = n_frames,
+
 			time = str(timedelta(seconds = n_frames / sr))[2:-3],
 			channels = channels_display.capitalize(),
 			size = file_size(file),
@@ -150,24 +163,19 @@ def process_file(
 
 	# --- Sample processing ---
 
+	# signal_trimmed is the real signal that may eventually be written.
+	# Do not extend it before sample-rate estimation.
 	signal_trimmed, start, _ = trim_signal(
 		signal,
+
 		start = to_samples(args.start or 0, sr),
 		duration = to_samples(args.duration, sr) if args.duration is not None else -1,
+
 		skip_each = args.skip_each,
 		max_duration = MAX_DURATION,
 	)
 
-	current_len = signal_trimmed.shape[-1]
-	target_len = int(min(SAMPLE_MIN_EXTEND, SAMPLE_LARGE))
-
-	if current_len < target_len:
-		logger.info(
-			"Extending signal:",
-			f"{current_len} -> {target_len} samples"
-		)
-		signal_trimmed = extend_signal(signal_trimmed, target_len)
-
+	# Spectral gate
 	if args.spectral_gate_cutoff is not None:
 		parsed_bands = _parse_bands(args.spectral_gate_bands, max_sr = sr)
 
@@ -177,7 +185,11 @@ def process_file(
 		)
 
 		for band in parsed_bands:
-			logger.info("Spectral gate bands", str(parsed_bands.index(band) + 1) + ": " + " → ".join((str(x) for x in band)) + " [Hz]")
+			logger.info("Spectral gate bands",
+				str(parsed_bands.index(band) + 1)
+				+ " → ".join((str(x) for x in band))
+				+ " [Hz]"
+			)
 
 		signal_trimmed = spectral_gate(
 			signal_trimmed,
@@ -186,6 +198,7 @@ def process_file(
 			bands = parsed_bands
 		)
 
+	# Truncate signal
 	if args.trim_threshold_start is not None and args.trim_threshold_end is not None:
 		logger.debug("Trimming signal")
 
@@ -195,26 +208,55 @@ def process_file(
 			threshold_end = args.trim_threshold_end
 		)
 
-	logger.debug("Normalizing signal")
+	# --- Estimation-only signal ---
 
+	# The extension is ONLY used to give estimators enough material.
+	#
+	# It must never become part of signal_trimmed because signal_trimmed
+	# represents the actual audio that will eventually be resampled/written.
+	current_len = signal_trimmed.shape[-1]
+	target_len = int(min(SAMPLE_MIN_EXTEND, SAMPLE_LARGE))
+
+	signal_estimation = signal_trimmed
+
+	if current_len < target_len:
+		logger.info(
+			"Extending signal for estimation:",
+			f"{current_len} -> {target_len} samples"
+		)
+
+		signal_estimation = extend_signal(
+			signal_trimmed,
+			target_len
+		)
+
+	# Normalize signals
 	signal_trimmed_max = signal_trimmed / (
 		np.max(np.abs(signal_trimmed)) + 1e-12
+	)
+
+	signal_estimation_max = signal_estimation / (
+		np.max(np.abs(signal_estimation)) + 1e-12
 	)
 
 	final_len = signal_trimmed.shape[-1]
 
 	if args.verbosity > 0:
-		samples_time = str(timedelta(seconds = (final_len / sr)))[2:]
+		samples_time = str(timedelta(seconds = final_len / sr))[2:]
 
 		logger.info(
 			"Processing samples:",
-			"{start} -> {end} ({color_meta}each {skip}{reset}) ({color_meta}{ftime}{reset}) ({color_meta}{percentage}%{reset})".format(
+			"{start} -> {end} "
+			"({color_meta}each {skip}{reset}) "
+			"({color_meta}{ftime}{reset}) "
+			"({color_meta}{percentage:.2f}%{reset})".format(
 				start = start,
 				end = final_len,
 
 				skip = args.skip_each,
+
 				ftime = samples_time,
-				percentage = round(percentage(final_len, n_frames), 2),
+				percentage = percentage(final_len, n_frames),
 
 				color_meta = Fore.GRAY,
 				reset = Fore.RESET
@@ -231,14 +273,10 @@ def process_file(
 				)
 			)
 
-	# n_clip = 10
-	# logger.debug(f"Clipping signal by {n_clip} times")
-	# signal_trimmed_max = np.clip(signal_trimmed_max * n_clip, -1.0, 1.0)
+	# --- Estimations ---
 
-	#-=-=-=-#
-	# Estimations
+	# Sample-rate
 
-	# samplerate
 	if args.exclude_sample_rate:
 		estimated_sr = sr
 	else:
@@ -250,10 +288,16 @@ def process_file(
 			desc = f"With {args.model}"
 
 		msg = msg.strip()
+
 		logger.debug(msg, desc)
 
+		# IMPORTANT:
+		# Use signal_estimation_max here, NOT signal_trimmed_max.
+		#
+		# signal_estimation may contain the temporary extension needed
+		# by the estimator, while signal_trimmed remains the real output.
 		estimated_sr = Estimators.sample_rate(
-			signal_trimmed_max,
+			signal_estimation_max,
 			sr,
 
 			checkpoint_path = args.model,
@@ -261,26 +305,25 @@ def process_file(
 			n_fft = args.sr_n_fft,
 
 			freq_step = args.frequency_step,
+
 			show_graph = True if args.verbosity > 1 else False,
 
 			rounded = False
 		)
 
 	estimated_cutoff = estimated_sr / 2
-
 	estimated_sr = int(estimated_sr)
+
 	diff_sr = abs(sr - estimated_sr)
 
-	# bit depth
+	# Bit depth
 	if args.exclude_bit_depth:
 		estimated_bit_depth = bit_depth
-	elif args.spectral_gate_cutoff is None:
-		logger.debug("Estimating bit depth")
-		estimated_bit_depth = Estimators.bit_depth(signal_trimmed_max)
 	else:
-		## thinking about removing this
-		#logger.warning("Unable to estimate bit depth", f"Spectral gate used with cutoff {args.spectral_gate_cutoff:.2f} dB")
-		#estimated_bit_depth = 32
+		logger.debug("Estimating bit depth")
+
+		# Bit depth describes the actual selected signal, not the
+		# estimation-only extension.
 		estimated_bit_depth = Estimators.bit_depth(signal_trimmed_max)
 
 	if args.spectral_gate_cutoff is None:
@@ -289,14 +332,16 @@ def process_file(
 		# change to 32 if needed
 		estimated_bit_depth_snapped = 24
 
-	# channels
+	# Channels
 	if args.exclude_channels:
 		estimated_channels = n_channels
 	else:
 		logger.debug("Estimating channels")
+
+		# Again, use the real signal rather than the extended estimation copy.
 		estimated_channels = Estimators.channels(signal_trimmed_max)
 
-	# bitrate
+	# Bitrate
 	if args._calculate_bitrate:
 		logger.debug("Estimating bitrate")
 
@@ -309,11 +354,14 @@ def process_file(
 	else:
 		estimated_bitrate = bitrate
 
+	# Peak
 	if args.exclude_peak:
 		estimated_peak = ""
 	else:
 		logger.debug("Estimating peak")
 		estimated_peak = Estimators.peak(signal_trimmed_max, "dB", 3)
+
+	#-=-=-=-#
 
 	log_estimates(
 		original_sample_rate = sr,
@@ -329,7 +377,7 @@ def process_file(
 		args = args
 	)
 
-	# verbosity 0
+	# Verbosity 0
 	if not args.verbosity:
 		val = " ".join(map(str, (
 			"-" if args.exclude_sample_rate else estimated_sr,
@@ -345,9 +393,11 @@ def process_file(
 
 		print(val.strip())
 
+	# Output
 	do_write = should_write_output(idx, args)
 
 	output_path = None
+
 	if args.file_output:
 		output_path = get_output_path(file, args)
 
@@ -355,28 +405,32 @@ def process_file(
 		"exist": "File already exists",
 		"same": "Parameters same as in input file"
 	}
-
 	err_code = ""
+
 	if args.force:
 		do_write = True
 	else:
 		if output_path and os.path.exists(output_path):
-			#logger.error("File already exists!")
-
 			do_write = False
 			err_code = "exist"
 
 		if all((
-				sr == estimated_sr,
-				n_channels == estimated_channels,
-				estimated_peak == args.normalize
-			)):
-
+			sr == estimated_sr,
+			n_channels == estimated_channels,
+			estimated_peak == args.normalize
+		)):
 			do_write = False
 			err_code = "same"
 
+	# Write output
 	if do_write:
 		logger.debug("Attempting to write file")
+
+		# IMPORTANT:
+		# Start from signal_trimmed, NEVER signal_estimation.
+		#
+		# This prevents the samples introduced by extend_signal() from
+		# appearing in the output.
 		resampled = signal_trimmed
 
 		if diff_sr:
@@ -401,13 +455,13 @@ def process_file(
 			bitrate = estimated_bitrate,
 
 			copy_tags_file = None if args.exclude_metadata else file,
+
 			normalize = normalize,
 
 			args = args
 		)
 
 		if not output_path:
-			#raise Exception("An error occured.")
 			return
 
 		orig_size = os.path.getsize(file)
@@ -421,17 +475,22 @@ def process_file(
 
 		logger.info(
 			"Modified file saved to:",
-			"{color_value}{out_path}{reset} ({color_size}{size}{reset}) ({color_meta}{diff_op}{difference_size}{reset}) ({color_meta}{diff_op}{perc_size}%{reset})".format(
+			"{color_value}{out_path}{reset} "
+			"({color_size}{size}{reset}) "
+			"({color_meta}{diff_op}{difference_size}{reset}) "
+			"({color_meta}{diff_op}{perc_size}%{reset})".format(
 				out_path = output_path,
+
 				size = file_size(output_path),
 
 				diff_op = percentage_operator,
-				difference_size=difference_size,
+				difference_size = difference_size,
 				perc_size = abs(percentage_size),
 
 				color_value = "" if percentage_operator == "-" else Fore.ORANGE,
 				color_size = Fore.PINK,
 				color_meta = Fore.GRAY if percentage_operator == "-" else Fore.RED,
+
 				reset = Fore.RESET
 			)
 		)

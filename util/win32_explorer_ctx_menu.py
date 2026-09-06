@@ -144,13 +144,13 @@ shell_hooks.relcd(os.path.join(name_process, name_process + name_globalPipeline)
 shell_hooks.relcd(os.path.join("Shell", "02_SG90"))
 shell_hooks.make()
 
-shell_hooks[""] = "Spectral Gate (Fullband, -90 dB) → Channel Detection"
+shell_hooks[""] = "Spectral Gate (Fullband, -90 dB) → Sample-Rate Detection → Channel Detection"
 shell_hooks["Icon"] = ",".join(("NetCenter.dll", "-18"))
 
 shell_hooks.relcd("command")
 shell_hooks.make()
 
-shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 90 -nsr -nbd -nc -nbr -np -v 2'
+shell_hooks[""] = f'"{loc_py}" -m {name_prog} -i "%1" -f -o "%1" -gc 90 -nbd -nc -nbr -np -v 1'
 shell_hooks.relcd(os.path.join(os.pardir, os.pardir)) # exit current command
 
 #---
