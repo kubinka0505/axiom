@@ -32,8 +32,15 @@ import numpy as np
 import pytest
 
 from axiom import Axiom
-from axiom._core.setup import DEPTHS_BIT, SAMPLE_MIN_EXTEND
-from axiom._core.algorithms import Estimators, transform_contrast
+
+from axiom._core.setup import *
+from axiom._core.algorithms import *
+
+from axiom._core.helpers.audio import *
+from axiom._core.helpers.numbers import *
+from axiom._core.helpers.iterables import *
+from axiom._core.helpers.files import *
+from axiom._core.helpers.paths import *
 
 try:
 	import pydub # noqa: F401
@@ -44,9 +51,9 @@ except ImportError:
 
 CHECKPOINT_PATH = os.environ.get("AXIOM_TEST_CHECKPOINT")
 
-# ------------------------------------------------------------------ #
+
 # helpers
-# ------------------------------------------------------------------ #
+
 
 def white_noise(n_samples, channels = 1, seed = 0):
 	"""Reproducible white noise in [-1, 1)."""
@@ -94,9 +101,7 @@ def empty_wav_factory(tmp_path):
 
 	return _make
 
-# ------------------------------------------------------------------ #
 # __init__ / file discovery
-# ------------------------------------------------------------------ #
 
 class TestAxiomInit:
 	def test_single_file_is_registered(self, wav_factory):
@@ -162,9 +167,7 @@ class TestAxiomInit:
 		assert names == sorted(names)
 		assert set(names) == {"a.wav", "b.wav", "c.wav"}
 
-# ------------------------------------------------------------------ #
 # method aliases
-# ------------------------------------------------------------------ #
 
 class TestAliases:
 	@pytest.mark.parametrize("alias_name", ["sr", "samplerate", "samplingrate", "sampling_rate"])
@@ -183,9 +186,7 @@ class TestAliases:
 	def test_estimate_aliases(self, alias_name):
 		assert getattr(Axiom, alias_name) is Axiom.estimate
 
-# ------------------------------------------------------------------ #
 # Estimators.sample_rate / heuristic_cutoff (needs librosa)
-# ------------------------------------------------------------------ #
 
 class TestEstimatorsSampleRate:
 	@pytest.mark.parametrize("sr", [8000, 22050, 44100, 48000])
@@ -220,9 +221,7 @@ class TestEstimatorsSampleRate:
 		estimated = Estimators.sample_rate(sig, 44100, checkpoint_path = CHECKPOINT_PATH)
 		assert estimated > 0
 
-# ------------------------------------------------------------------ #
 # Estimators.bit_depth
-# ------------------------------------------------------------------ #
 
 class TestEstimatorsBitDepth:
 	def test_bit_depth_is_within_scanned_range(self):
@@ -256,9 +255,7 @@ class TestEstimatorsBitDepth:
 		from axiom._core.helpers.iterables import snap
 		assert snap(estimated, DEPTHS_BIT) == nearest
 
-# ------------------------------------------------------------------ #
 # Estimators.channels
-# ------------------------------------------------------------------ #
 
 class TestEstimatorsChannels:
 	def test_mono_signal_returns_one(self):
@@ -289,9 +286,7 @@ class TestEstimatorsChannels:
 		duplicated = np.stack([mono, mono], axis = 1)
 		assert Estimators.channels(duplicated) == 1
 
-# ------------------------------------------------------------------ #
 # Estimators.bit_rate
-# ------------------------------------------------------------------ #
 
 class TestEstimatorsBitRate:
 	def test_wav_bitrate_is_exact_product(self):
@@ -319,9 +314,7 @@ class TestEstimatorsBitRate:
 		result_low = Estimators.bit_rate("song.ogg", sr = 1, n_channels = 1, bit_depth = 1)
 		assert result_low == min(RATES_OGG_BIT)
 
-# ------------------------------------------------------------------ #
 # Estimators.peak
-# ------------------------------------------------------------------ #
 
 class TestEstimatorsPeak:
 	def test_peak_linear_is_within_unit_range(self):
@@ -349,9 +342,7 @@ class TestEstimatorsPeak:
 		with pytest.raises(ValueError):
 			Estimators.peak(sig, unit = "bogus")
 
-# ------------------------------------------------------------------ #
 # transform_contrast (standalone helper)
-# ------------------------------------------------------------------ #
 
 class TestTransformContrast:
 	def test_output_stays_within_unit_range(self):
@@ -372,9 +363,7 @@ class TestTransformContrast:
 		out_edge = transform_contrast(img, 127)
 		assert np.allclose(out_over, out_edge)
 
-# ------------------------------------------------------------------ #
 # End-to-end (full _process_files pipeline)
-# ------------------------------------------------------------------ #
 
 class TestEndToEnd:
 	def test_channels_end_to_end(self, wav_factory):
@@ -416,3 +405,203 @@ class TestEndToEnd:
 		ax = Axiom([f])
 		r = first_result(ax.sample_rate())
 		assert r["samplerate"] > 0
+
+# extra algo branches
+
+class AlgorithmsExtra:
+	def test_detect_cutoff_index(self):
+			profile = np.array([0.0, 0.0, 0.0, 0.5, 0.8, 0.9])
+			idx = detect_cutoff_index(profile, step_size=2, threshold=1e-3)
+			assert idx is not None
+			assert idx >= 0
+
+	def test_channels_chunking_fallback(self):
+		# Directly test fallback logic
+		stereo_signal = np.random.uniform(-1, 1, (20000, 2))
+		channels = Estimators._channels_chunking(
+			stereo_signal, chunk_size=2048, stereo_threshold=0.05
+		)
+		assert channels in (1, 2)
+
+# numbers
+
+class TestNumbersHelper:
+	def test_clamp(self):
+		assert clamp(5, 0, 10) == 5
+		assert clamp(-5, 0, 10) == 0
+		assert clamp(15, 0, 10) == 10
+
+	def test_percentage(self):
+		assert percentage(25, 200) == 12.5
+		assert percentage(1, 3, rounding=2) == 33.33
+
+	def test_to_readable_numeric(self):
+		assert to_readable(10.0) == 10
+		assert to_readable(10.5) == 10.5
+
+	def test_to_readable_strings(self):
+		assert to_readable("2e2") == 200
+		assert to_readable("22.01k") == 22010
+		assert to_readable("1.5m") == 1500000
+		assert to_readable("2g") == 2000000000
+		assert to_readable("invalid_str") is None
+
+# misc.py
+
+class TestMiscHelper:
+	def test_hex2ansi_foreground(self):
+		ansi = hex2ansi("#ff0000", fore=True)
+		assert ansi == "\033[38;2;255;0;0m"
+
+	def test_hex2ansi_background_shorthand(self):
+		ansi = hex2ansi("f00", fore=False)
+		assert ansi == "\033[48;2;255;0;0m"
+
+	def test_hex2ansi_invalid_length(self):
+		with pytest.raises(ValueError, match="must be 3 or 6 hex characters"):
+			hex2ansi("abcd")
+
+	def test_hex2ansi_invalid_hex_values(self):
+		with pytest.raises(ValueError, match="Invalid hex color"):
+			hex2ansi("ZZZZZZ")
+
+# iterables.py
+
+class TestIterablesHelper:
+	def test_snap_right_and_left(self):
+		opts = [128, 192, 256]
+		# Default right-bisect
+		assert snap(150, opts, left=False) == 192
+		# Left-bisect
+		assert snap(150, opts, left=True) == 192
+
+	def test_snap_beyond_max(self):
+		opts = [128, 192, 256]
+		assert snap(300, opts) == 256
+
+# paths.py
+
+class TestPathsHelper:
+	def test_normalize_path_relative(self, tmp_path):
+		p = tmp_path / "test.txt"
+		normalized = normalize_path(p, relative = True)
+		assert isinstance(normalized, str)
+
+	def test_normalize_path_absolute(self, tmp_path):
+		p = tmp_path / "test.txt"
+		normalized = normalize_path(p, relative = False)
+		assert isinstance(normalized, Path)
+		assert normalized == p
+
+	def test_normalize_path_different_drives(monkeypatch):
+		# Mock relative=True when working across different Windows drive mounts
+		p = "D:/some/path/file.txt"
+		normalized = normalize_path(p, relative = True)
+		assert isinstance(normalized, str)
+
+# files.py
+
+class TestFilesHelper:
+	def test_file_size_from_bytes(self):
+		assert file_size(500) == "500.00 B"
+		assert file_size(2048) == "2.00 KB"
+		assert file_size(1048576 * 5) == "5.00 MB"
+
+	def test_file_size_from_filepath(self, tmp_path):
+		f = tmp_path / "sample.bin"
+		f.write_bytes(b"0" * 2048)
+		assert file_size(str(f)) == "2.00 KB"
+
+	def test_file_size_nonexistent_file(self):
+		with pytest.raises(FileNotFoundError):
+			file_size("nonexistent_file_path.tmp")
+
+	def test_file_size_directory_path(self, tmp_path):
+		with pytest.raises(ValueError):
+			file_size(str(tmp_path))
+
+	def test_package_search_empty_query(self):
+		assert package_search("") == ""
+
+# audio.py
+
+class TestAudioHelper:
+	def test_to_samples(self):
+		sr = 44100
+		assert to_samples(None, sr) is None
+		assert to_samples(1000, sr) == 1000
+		assert to_samples("500ms", sr) == 22050
+		assert to_samples("2s", sr) == 88200
+		assert to_samples("00:01", sr) == 44100
+
+	def test_to_db(self):
+		assert np.isclose(to_db(1.0), 0.0, atol = 1e-3)
+		assert to_db(0.0) < -100
+
+	def test_bit_depth_to_subtype(self):
+		assert bit_depth_to_subtype(16, "wav") == "PCM_16"
+		assert bit_depth_to_subtype(24, "wav") == "PCM_24"
+		assert bit_depth_to_subtype(32, "wav") == "FLOAT"
+		assert bit_depth_to_subtype(8, "wav") == "PCM_32"
+		assert bit_depth_to_subtype(16, "flac") == "PCM_16"
+		assert bit_depth_to_subtype(24, "flac") == "PCM_24"
+		assert bit_depth_to_subtype(16, "mp3") is None
+
+	def test_perceptual_difference(self):
+		diff = perceptual_difference(44100, 22050)
+		assert diff > 0
+
+	def test_resample_signal_scipy_fallback(self):
+		sig_1d = np.sin(np.linspace(0, 10, 1000, dtype = np.float32))
+		resampled_1d = resample_signal(sig_1d, 44100, 22050, force_scipy = True)
+		assert len(resampled_1d) == 500
+
+		sig_2d = np.stack([sig_1d, sig_1d])
+		resampled_2d = resample_signal(sig_2d, 44100, 22050, force_scipy = True)
+		assert resampled_2d.shape == (2, 500)
+
+	def test_resample_signal_invalid_sr(self):
+		sig = np.zeros(100)
+		with pytest.raises(ValueError, match="must be positive"):
+			resample_signal(sig, 0, 44100)
+
+	def test_extend_signal(self):
+		sig_1d = np.array([1, 2, 3])
+		ext_1d = extend_signal(sig_1d, 7)
+		np.testing.assert_array_equal(ext_1d, np.array([1, 2, 3, 1, 2, 3, 1]))
+
+		sig_2d = np.array([[1, 2, 3], [4, 5, 6]])
+		ext_2d = extend_signal(sig_2d, 5)
+		assert ext_2d.shape == (2, 5)
+
+	def test_spectral_gate_none_cutoff(self):
+		sig = np.random.uniform(-1, 1, 1000).astype(np.float32)
+		out = spectral_gate(sig, sr = 44100, cutoff = None)
+		np.testing.assert_array_equal(sig, out)
+
+	def test_spectral_gate_invalid_bands(self):
+		sig = np.random.uniform(-1, 1, 1000).astype(np.float32)
+		with pytest.raises(ValueError, match = "bands must be None"):
+			spectral_gate(sig, sr = 44100, cutoff = 20, bands = ["invalid"])
+
+	def test_trim_signal(self):
+		sig = np.arange(100)
+		trimmed, start, end = trim_signal(sig, start = 10, duration = 20, skip_each = 2)
+		assert start == 10
+		assert end == 30
+		assert len(trimmed) == 10
+
+	def test_trim_signal_invalid_range(self):
+		sig = np.arange(100)
+
+		with pytest.raises(ValueError, match = "Invalid trim range"):
+			trim_signal(sig, start = 50, duration = 0)
+
+		# start >= n_frames results in end <= start (100:100), raising ValueError
+		with pytest.raises(ValueError, match = "Invalid trim range"):
+			trim_signal(sig, start = 100, duration = 10)
+
+	def test_truncate_signal_silence(self):
+		silent = np.zeros(1000)
+		out = truncate_signal(silent, threshold_start = -40, threshold_end = -40)
+		np.testing.assert_array_equal(silent, out)

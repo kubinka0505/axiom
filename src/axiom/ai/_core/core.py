@@ -252,7 +252,7 @@ def _target_to_cutoff(
 class CutoffDataset(Dataset):
 	def __init__(
 		self,
-		
+
 		json_map_path: str,
 		audio_dir: str,
 

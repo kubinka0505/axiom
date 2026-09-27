@@ -666,7 +666,7 @@ def heuristic_cutoff(
 	ax.set_xlabel("Sample index", fontname = font)
 
 	scan_line = ax.axhline(0, color = "cyan", linewidth = 1, label = "scan")
-	
+
 	if output_dir:
 		os.makedirs(output_dir, exist_ok = True)
 

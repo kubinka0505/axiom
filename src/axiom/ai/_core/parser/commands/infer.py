@@ -62,7 +62,7 @@ class Inference:
 	# Validation + resolution logic
 	def validate(
 		self,
-		
+
 		args, parser
 	):
 		if not args.file_input:
