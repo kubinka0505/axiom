@@ -82,20 +82,20 @@ class Axiom:
 	def _process_files(
 		self,
 
-		start: str = None,
-		duration: str = None,
+		start: Optional[str] = None,
+		duration: Optional[str] = None,
 		skip_each: int = 1,
 
-		spectral_gate_cutoff_db: float = None,
+		spectral_gate_cutoff_db: Optional[float] = None,
 		spectral_gate_bands: list[list[float]] | None = None,
 
-		trim_threshold_start: float = None,
-		trim_threshold_end: float = None,
+		trim_threshold_start: Optional[float] = None,
+		trim_threshold_end: Optional[float] = None,
 
-		checkpoint_path: str = None,
+		checkpoint_path: Optional[str] = None,
 
-		n_fft: int = None,
-		freq_step: int = None,
+		n_fft: Optional[int] = None,
+		freq_step: Optional[int] = None,
 		show_graph: bool = False,
 
 		include_samplerate: bool = True,
@@ -232,19 +232,19 @@ class Axiom:
 	def sample_rate(
 		self,
 
-		start: str = None,
-		duration: str = None,
+		start: Optional[str] = None,
+		duration: Optional[str] = None,
 		skip_each: int = 1,
 
-		spectral_gate_cutoff_db: float = None,
+		spectral_gate_cutoff_db: Optional[float] = None,
 		spectral_gate_bands: list[list[float]] | None = None,
 
-		trim_threshold_start: float = None,
-		trim_threshold_end: float = None,
+		trim_threshold_start: Optional[float] = None,
+		trim_threshold_end: Optional[float] = None,
 
-		checkpoint_path: str = None,
+		checkpoint_path: Optional[str] = None,
 
-		freq_step: int = None,
+		freq_step: Optional[int] = None,
 		show_graph: bool = False
 	) -> Dict[str, List[int]]:
 		"""
@@ -306,8 +306,8 @@ class Axiom:
 	def bit_depth(
 		self,
 
-		start: int = None,
-		duration: str = None,
+		start: Optional[int] = None,
+		duration: Optional[str] = None,
 		skip_each: int = 1
 	) -> Dict[str, int]:
 		"""
@@ -350,8 +350,8 @@ class Axiom:
 	def channels(
 		self,
 
-		start: int = None,
-		duration: str = None,
+		start: Optional[int] = None,
+		duration: Optional[str] = None,
 		skip_each: int = 1
 	) -> Dict[str, int]:
 		"""
@@ -394,14 +394,14 @@ class Axiom:
 	def estimate(
 		self,
 
-		start: str = None,
-		duration: str = None,
+		start: Optional[str] = None,
+		duration: Optional[str] = None,
 		skip_each: int = 1,
 
-		checkpoint_path: str = None,
+		checkpoint_path: Optional[str] = None,
 
-		n_fft: int = None,
-		freq_step: int = None,
+		n_fft: Optional[int] = None,
+		freq_step: Optional[int] = None,
 		show_graph: bool = False,
 	) -> Dict[str, Dict[str, Any]]:
 		"""
