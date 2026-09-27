@@ -8,7 +8,14 @@ from torch.utils.tensorboard import SummaryWriter
 
 #-=-=-=-#
 
-def save_checkpoint(path, model, optimizer, scheduler, epoch, best_val):
+def save_checkpoint(
+	path,
+	model,
+	optimizer,
+	scheduler,
+	epoch,
+	best_val
+):
 	torch.save(
 		{
 			"model_state_dict": model.state_dict(),
@@ -19,16 +26,22 @@ def save_checkpoint(path, model, optimizer, scheduler, epoch, best_val):
 		}, path
 	)
 
-def load_checkpoint(path, model, optimizer = None, scheduler = None, device = "cpu"):
+def load_checkpoint(
+	path,
+	model,
+	optimizer = Optional[None],
+	scheduler = Optional[None],
+	device = "cpu"
+):
 	"""
 	Loads either a full training checkpoint (dict with model/optimizer/
 	scheduler/epoch/best_val) or a legacy bare state_dict (just weights).
 
 	Returns
 	-------
-		tuple:
-			(start_epoch, best_val)
-			(1, inf) for legacy/inference-only loads.
+	tuple
+		(start_epoch, best_val)
+		(1, inf) for legacy/inference-only loads.
 	"""
 	loaded = torch.load(path, map_location = device, weights_only = True)
 
@@ -59,8 +72,8 @@ def find_port() -> int:
 
 	Returns
 	-------
-		int:
-			An unused port number.
+	int
+		An unused port number.
 	"""
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 		s.bind(("", 0))
@@ -80,22 +93,22 @@ def run_tensorboard(
 
 	Parameters
 	----------
-		args:
-			Parsed arguments Namespace containing logs_directory and output_directory.
+	args:
+		Parsed arguments Namespace containing logs_directory and output_directory.
 
-		port (Optional[int]):
-			Port to run TensorBoard on. Finds a free port if None.
+	port : Optional[int]
+		Port to run TensorBoard on. Finds a free port if None.
 
-		window_title (Optional[str]):
-			Window title for TensorBoard.
+	window_title : Optional[str]
+		Window title for TensorBoard.
 
-		open_web (bool):
-			Whether to open the TensorBoard URL in a web browser.
+	open_web : bool
+		Whether to open the TensorBoard URL in a web browser.
 
 	Returns
 	-------
-		SummaryWriter:
-			TensorBoard SummaryWriter instance.
+	SummaryWriter
+		TensorBoard SummaryWriter instance.
 	"""
 	if not port:
 		port = find_port()

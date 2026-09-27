@@ -170,7 +170,7 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# Cusom
+# Custom
 *.bat
 *.wav
 *.flac

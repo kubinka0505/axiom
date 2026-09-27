@@ -70,7 +70,7 @@ dependencies = [
 Homepage = "https://github.com/kubinka0505/axiom"
 Repository = "https://github.com/kubinka0505/axiom"
 Issues = "https://github.com/kubinka0505/axiom/issues"
-Changelog = "https://github.com/kubinka0505/axiom/blob/master/docs/ChangeLog.md"
+Changelog = "https://github.com/kubinka0505/axiom/blob/main/docs/ChangeLog.md"
 
 [project.scripts]
 axiom = "axiom._cli.main:main"

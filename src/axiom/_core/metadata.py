@@ -20,9 +20,9 @@ from mutagen.id3 import (
 	USLT, COMM, WXXX, APIC, TXXX
 )
 
-# -----------------------------
+#-------------
 # NORMALIZATION MAP
-# -----------------------------
+#-------------
 
 TAG_MAP = {
 	"title":              ["TIT2", "TITLE"],
@@ -66,11 +66,10 @@ ID3_KEY_TO_FRAME = {
 # "DATE" -> "year",  "ALBUMARTIST" -> "album artist", etc.
 ALIAS_TO_KEY = {alias: k for k, v in TAG_MAP.items() for alias in v[1:]}
 
-# ============================================================
 # READ / NORMALIZE
-# ============================================================
-
-def normalize_tags(filepath: str) -> Tuple[dict, Optional[dict]]:
+def normalize_tags(
+	filepath: str
+) -> Tuple[dict, Optional[dict]]:
 	tags = {}
 	cover = None
 	ext = filepath.lower().split(".")[-1]
@@ -79,7 +78,7 @@ def normalize_tags(filepath: str) -> Tuple[dict, Optional[dict]]:
 	if audio is None:
 		return {}, None
 
-	# ---------------- MP3 / WAV (ID3) ----------------
+	# MP3 / WAV (ID3)
 	if ext in ("mp3", "wav"):
 		try:
 			if ext == "mp3":
@@ -123,7 +122,7 @@ def normalize_tags(filepath: str) -> Tuple[dict, Optional[dict]]:
 					"desc": frame.desc or "cover"
 				}
 
-	# ---------------- FLAC ----------------
+	# FLAC
 	elif ext == "flac":
 		audio = FLAC(filepath)
 
@@ -139,7 +138,7 @@ def normalize_tags(filepath: str) -> Tuple[dict, Optional[dict]]:
 				"desc": pic.desc or "cover"
 			}
 
-	# ---------------- OGG ----------------
+	# OGG
 	elif ext == "ogg":
 		audio = OggVorbis(filepath)
 
@@ -160,14 +159,15 @@ def normalize_tags(filepath: str) -> Tuple[dict, Optional[dict]]:
 
 	return tags, cover
 
-# ============================================================
 # WRITE
-# ============================================================
-
-def apply_tags(filepath: str, tags: dict, cover: Dict[str, Any] = None):
+def apply_tags(
+	filepath: str,
+	tags: dict,
+	cover: Dict[str, Any] = None
+):
 	ext = filepath.lower().split(".")[-1]
 
-	# ---------------- MP3 ----------------
+	# MP3
 	if ext == "mp3":
 		try:
 			id3 = ID3(filepath)
@@ -204,7 +204,7 @@ def apply_tags(filepath: str, tags: dict, cover: Dict[str, Any] = None):
 
 		id3.save(filepath, v2_version = 3)
 
-	# ---------------- FLAC ----------------
+	# FLAC
 	elif ext == "flac":
 		audio = FLAC(filepath)
 		audio.clear()
@@ -225,7 +225,7 @@ def apply_tags(filepath: str, tags: dict, cover: Dict[str, Any] = None):
 
 		audio.save()
 
-	# ---------------- OGG ----------------
+	# OGG
 	elif ext == "ogg":
 		audio = OggVorbis(filepath)
 		audio.clear()
@@ -245,7 +245,7 @@ def apply_tags(filepath: str, tags: dict, cover: Dict[str, Any] = None):
 
 		audio.save()
 
-	# ---------------- WAV (ID3) ----------------
+	# WAV (ID3)
 	elif ext == "wav":
 		audio = WAVE(filepath)
 

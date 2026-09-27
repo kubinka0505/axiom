@@ -1,26 +1,32 @@
 import os
 from pathlib import Path
 
-def normalize_path(p: Path, relative: bool = True) -> str:
+#-=-=-=-#
+
+def normalize_path(
+	p: Path,
+	relative: bool = True
+) -> str:
 	"""
 	Normalizes a filesystem path relative to the current working directory.
 
-	Expands environment variables and user home (`~`) before resolving to a relative path.
+	Expands environment variables and user home (`~`)
+	before resolving to a relative path.
 
 	Parameters
 	----------
-		p (Path):
-			Path object or string representing the file path.
+	p : Path
+		Path object or string representing the file path.
 
 	Returns
 	-------
-		str:
-			Normalized relative path string.
+	str
+		Normalized relative path string.
 
-	Example
-	-------
-		>>> normalize_path(Path("~/Documents/file.txt"))
-		'Documents/file.txt'
+	Examples
+	--------
+	>>> normalize_path(Path("~/Documents/file.txt"))
+	'Documents/file.txt'
 	"""
 	p = str(p)
 	p = os.path.expandvars(p)

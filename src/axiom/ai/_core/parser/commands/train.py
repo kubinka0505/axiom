@@ -7,11 +7,19 @@ from pathlib import Path
 class Training:
 	name = "train"
 
-	def __init__(self, formatter = argparse.ArgumentDefaultsHelpFormatter):
+	def __init__(
+		self,
+
+		formatter = argparse.ArgumentDefaultsHelpFormatter
+	):
 		self.formatter = formatter
 
 	# Parser builder
-	def add(self, subparsers):
+	def add(
+		self,
+
+		subparsers
+	):
 		train = subparsers.add_parser(
 			self.name,
 			help = "Train model on cutoff frequency regression task.",
@@ -130,7 +138,11 @@ class Training:
 		return train
 
 	# Validation
-	def validate(self, args, parser):
+	def validate(
+		self,
+
+		args, parser
+	):
 		if args.mode.lower() == "infer":
 			if not args.file_input:
 				parser.error("Input is required for inference mode")

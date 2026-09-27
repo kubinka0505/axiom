@@ -7,19 +7,26 @@ import soundfile as sf
 from io import BytesIO
 from pytimeparse.timeparse import timeparse
 
+from typing import Optional
+
 from .numbers import to_readable
 from .files import package_search
 
+#-=-=-=-#
+
 # Properties
-def to_samples(value, sr: int) -> int | None:
+def to_samples(
+	value,
+	sr: int
+) -> int | None:
 	"""
 	Converts time strings into samples.
 
 	Examples
 	--------
-		- "2s"
-		- "00:01"
-		- "500ms"
+	- "2s"
+	- "00:01"
+	- "500ms"
 	"""
 	if value is None:
 		return None
@@ -53,23 +60,28 @@ def to_samples(value, sr: int) -> int | None:
 
 	return None
 
-def to_db(value: float) -> float:
+def to_db(
+	value: float
+) -> float:
 	"""
 	Converts magnitude to decibels.
 
 	Parameters
 	----------
-		value (float):
-			value to be converted to decibels.
+	value : float
+		value to be converted to decibels.
 
 	Returns
 	-------
-		float:
-			Converted result.
+	float
+		Converted result.
 	"""
 	return 20 * np.log10(value + 1e-12)
 
-def bit_depth_to_subtype(bit_depth: int, fmt: str) -> str:
+def bit_depth_to_subtype(
+	bit_depth: int,
+	fmt: str
+) -> str:
 	fmt = fmt.lower()
 
 	if fmt == "wav":
@@ -95,7 +107,13 @@ def bit_depth_to_subtype(bit_depth: int, fmt: str) -> str:
 
 	return None
 
-def perceptual_difference(sr: int, est_sr: int, min_freq: float = 20.0, max_freq: float = 20000.0) -> float:
+def perceptual_difference(
+	sr: int,
+	est_sr: int,
+
+	min_freq: float = 20.0,
+	max_freq: float = 20000.0
+) -> float:
 	"""
 	Calculates the perceptual difference between the original and estimated sample rates.
 
@@ -106,29 +124,28 @@ def perceptual_difference(sr: int, est_sr: int, min_freq: float = 20.0, max_freq
 
 	Parameters
 	----------
-		sr (int):
-			Original sample rate (Hz).
+	sr : int
+		Original sample rate (Hz).
 
-		est_sr (int):
-			Estimated sample rate (Hz).
+	est_sr : int
+		Estimated sample rate (Hz).
 
-		---
+	min_freq : float
+		Minimum frequency to consider for perceptual comparison.
 
-		min_freq (float, optional):
-			Minimum frequency to consider for perceptual comparison.
-
-		max_freq (float, optional):
-			Maximum frequency to consider for perceptual comparison.
+	max_freq : float
+		Maximum frequency to consider for perceptual comparison.
 
 	Returns
 	-------
-		float:
-			Perceptual difference as a percentage. Higher values indicate greater perceptual deviation.
+	float
+		Perceptual difference as a percentage.
+		Higher values indicate greater perceptual deviation.
 
-	Example
-	-------
-		>>> perceptual_difference(44100, 32000)
-		2.253181519444287
+	Examples
+	--------
+	>>> perceptual_difference(44100, 32000)
+	2.253181519444287
 	"""
 	est_freq = max(min(est_sr / 2, max_freq), min_freq)
 	orig_freq = max(min(sr / 2, max_freq), min_freq)
@@ -155,22 +172,22 @@ def resample_signal(
 
 	Parameters
 	----------
-		signal (np.ndarray):
-			Array (mono or channel-first multi-channel).
+	signal : np.ndarray
+		Array (mono or channel-first multi-channel).
 
-		orig_sr (int):
-			Original sample rate.
+	orig_sr : int
+		Original sample rate.
 
-		target_sr (int):
-			Target sample rate.
+	target_sr : int
+		Target sample rate.
 
-		force_scipy (bool):
-			Force resample_poly even when PyDub is available.
+	force_scipy : bool
+		Force resample_poly even when PyDub is available.
 
 	Returns
 	-------
-		np.ndarray:
-			Resampled signal array with same dtype/range as input.
+	np.ndarray
+		Resampled signal array with same dtype/range as input.
 	"""
 	if orig_sr <= 0 or target_sr <= 0:
 		raise ValueError("Sample rates must be positive integers.")
@@ -190,7 +207,7 @@ def resample_signal(
 		if signal.dtype != np.int16:
 			if np.issubdtype(signal.dtype, np.floating):
 				signal_scaled = np.int16(
-					np.clip(signal, -1.0, 1.0) * 32767
+					np.clip(signal, -1, 1) * 32767
 				)
 			else:
 				signal_scaled = signal.astype(np.int16)
@@ -256,7 +273,10 @@ def resample_signal(
 	else:
 		return resample_poly(signal, up, down).astype(original_dtype)
 
-def extend_signal(signal: np.ndarray, target_length: int) -> np.ndarray:
+def extend_signal(
+	signal: np.ndarray,
+	target_length: int
+) -> np.ndarray:
 	"""
 	Extends an ndarray by repeating along the last axis until it reaches at least `target_length`.
 
@@ -264,25 +284,25 @@ def extend_signal(signal: np.ndarray, target_length: int) -> np.ndarray:
 
 	Parameters
 	----------
-		signal (np.ndarray):
-			Input array, last dimension is time axis.
+	signal : np.ndarray
+		Input array, last dimension is time axis.
 
-		target_length (int):
-			Desired minimum length along last axis.
+	target_length : int
+		Desired minimum length along last axis.
 
 	Returns
 	-------
-		np.ndarray:
-			Extended array with last axis length exactly `target_length`.
+	np.ndarray
+		Extended array with last axis length exactly `target_length`.
 
-	Example
-	-------
-		>>> extend_signal(np.array([1, 2, 3]), 7)
-		array([1, 2, 3, 1, 2, 3, 1])
+	Examples
+	--------
+	>>> extend_signal(np.array([1, 2, 3]), 7)
+	array([1, 2, 3, 1, 2, 3, 1])
 		
-		>>> extend_signal(np.array([[1,2,3],[4,5,6]]), 7)
-		array([[1,2,3,1,2,3,1],
-			   [4,5,6,4,5,6,4]])
+	>>> extend_signal(np.array([[1,2,3],[4,5,6]]), 7)
+	array([[1,2,3,1,2,3,1],
+		   [4,5,6,4,5,6,4]])
 	"""
 	idx = np.arange(target_length) % signal.shape[-1]
 	return np.take(signal, idx, axis = -1)
@@ -291,10 +311,10 @@ def spectral_gate(
 	signal: np.ndarray,
 	sr: int,
 
-	cutoff: float = None,
+	cutoff: Optional[float] = None,
 	knee: float = 10.0,
 
-	bands: list[list[float]] | None = None,
+	bands: Optional[list[list[float]]] | None = None,
 
 	fft_size: int = 2048,
 	overlap: float = 0.5,
@@ -313,58 +333,58 @@ def spectral_gate(
 
 	Parameters
 	----------
-		signal (np.ndarray):
-			Input audio signal. Can be mono (shape: [n]) or stereo (shape: [n, channels]).
-			Expected float32 in range [-1.0, 1.0].
+	signal : np.ndarray
+		Input audio signal. Can be mono (shape: [n]) or stereo (shape: [n, channels]).
+		Expected float32 in range [-1.0, 1.0].
 
-		sr (int):
-			Sample rate of the input audio in Hz.
+	sr : int
+		Sample rate of the input audio in Hz.
 
-		---
+	---
 
-		cutoff (float, optional):
-			Absolute dB threshold for attenuation.
-			Frequency bins below this level are progressively attenuated.
-			Returns input signal if None.
+	cutoff : Optional[float]
+		Absolute dB threshold for attenuation.
+		Frequency bins below this level are progressively attenuated.
+		Returns input signal if None.
 
-		knee (float, optional):
-			Soft transition width around the cutoff threshold in dB.
-			Controls how gradually gain transitions from 0 → 1.
+	knee : float
+		Soft transition width around the cutoff threshold in dB.
+		Controls how gradually gain transitions from 0 → 1.
 
-		---
+	---
 
-		bands (list[list[float]] | list[float] | None, optional):
-			Frequency ranges in Hz where spectral gating is active.
+	bands : Optional[list[list[float]] | list[float]] | None
+		Frequency ranges in Hz where spectral gating is active.
 
-			Accepts either a single range [low, high] or multiple ranges
-			[[low1, high1], [low2, high2], ...].
+		Accepts either a single range [low, high] or multiple ranges
+		[[low1, high1], [low2, high2], ...].
 
-			Frequencies outside these ranges bypass the gate.
+		Frequencies outside these ranges bypass the gate.
 
-			If None, all frequencies are processed.
+		If None, all frequencies are processed.
 
-		---
+	---
 
-		fft_size (int, optional):
-			Size of the FFT window used for STFT analysis.
-			Larger values improve frequency resolution but increase latency.
+	fft_size : int
+		Size of the FFT window used for STFT analysis.
+		Larger values improve frequency resolution but increase latency.
 
-		overlap (float, optional):
-			Fraction of FFT window overlap (0.0–0.95 typical).
-			Higher values reduce artifacts but increase computation cost.
+	overlap : float
+		Fraction of FFT window overlap (0.0–0.95 typical).
+		Higher values reduce artifacts but increase computation cost.
 
-		window (str, optional):
-			Window function applied before FFT (e.g., "hann", "blackman").
+	window : str
+		Window function applied before FFT (e.g., "hann", "blackman").
 
-		---
+	---
 
-		diff (bool, optional):
-			Returns original signal spectrally subtracted from the result.
+	diff : bool
+		Returns original signal spectrally subtracted from the result.
 
 	Returns
 	-------
-		np.ndarray:
-			Processed audio signal (float32), same shape as input, with values clamped to [-1.0, 1.0].
+	np.ndarray
+		Processed audio signal (float32), same shape as input, with values clamped to [-1.0, 1.0].
 	"""
 	if cutoff is None:
 		return signal
@@ -395,7 +415,9 @@ def spectral_gate(
 
 	from scipy.signal import stft, istft
 
-	def process(sig: np.ndarray) -> np.ndarray:
+	def process(
+		sig: np.ndarray
+	) -> np.ndarray:
 		freqs, _, Zxx = stft(
 			sig,
 			fs = sr,
@@ -457,8 +479,8 @@ def trim_signal(
 	"""
 	Returns
 	-------
-		tuple:
-			(trimmed_signal, start, end)
+	tuple
+		(trimmed_signal, start, end)
 	"""
 	n_frames = signal.shape[-1]
 
@@ -495,8 +517,8 @@ def trim_signal(
 
 def truncate_signal(
 	signal: np.ndarray,
-	threshold_start: float = None,
-	threshold_end: float = None,
+	threshold_start: Optional[float] = None,
+	threshold_end: Optional[float] = None,
 	threshold_step: float = 5.0,
 ) -> np.ndarray:
 	"""
@@ -504,18 +526,18 @@ def truncate_signal(
 
 	Parameters
 	----------
-	signal:
+	signal : np.ndarray
 		Array (mono or channel-first multi-channel).
 
-	threshold_start:
+	threshold_start : Optional[float]
 		dB threshold for the left side.
 		None disables left trimming.
 
-	threshold_end:
+	threshold_end : Optional[float]
 		dB threshold for the right side.
 		None disables right trimming.
 
-	threshold_step:
+	threshold_step : float
 		Amount by which to relax the threshold if no sample survives.
 	"""
 	if threshold_start:
@@ -550,7 +572,7 @@ def truncate_signal(
 	start = 0
 	end = signal.shape[-1]
 
-	# right
+	# left
 	if threshold_start is not None:
 		current_threshold = -abs(float(threshold_start))
 
@@ -596,7 +618,10 @@ def truncate_signal(
 
 	return signal[..., start:end]
 
-def optimize_file_audio(file_input: str | BytesIO, level: int = 8) -> str:
+def optimize_file_audio(
+	file_input: str | BytesIO,
+	level: int = 8
+) -> str:
 	file_input = str(file_input)
 
 	with sf.SoundFile(file_input) as f:

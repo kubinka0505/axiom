@@ -13,7 +13,9 @@ from ..audio import process_file
 
 #-=-=-=-#
 
-def _load_existing_mapping(json_path: Path) -> dict:
+def _load_existing_mapping(
+	json_path: Path
+) -> dict:
 	"""
 	Load a previous _labels.json if present, so reruns merge into it
 	instead of overwriting it. Missing/corrupt files just start fresh.
@@ -28,7 +30,10 @@ def _load_existing_mapping(json_path: Path) -> dict:
 		print(f"[WARNING] Could not read existing {json_path.name} ({e}); starting fresh.")
 		return {}
 
-def _write_mapping_atomic(json_path: Path, mapping: dict):
+def _write_mapping_atomic(
+	json_path: Path,
+	mapping: dict
+):
 	"""
 	Write mapping to a temp file then rename over the target, so a crash
 	mid-write can't leave a truncated/corrupt labels file.
@@ -40,7 +45,9 @@ def _write_mapping_atomic(json_path: Path, mapping: dict):
 
 	os.replace(tmp_path, json_path)
 
-def main(args):
+def main(
+	args
+):
 	src = Path(args.dataset)
 	dst = Path(args.destination)
 	dst.mkdir(parents = True, exist_ok = True)

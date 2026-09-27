@@ -15,7 +15,10 @@ from .._core.helpers.numbers import to_readable, clamp
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHelpFormatter):
 	pass
 
-def _all_excluded(args, group, keyword: str) -> bool:
+def _all_excluded(
+	args,
+	group, keyword: str
+) -> bool:
 	return all(
 		getattr(args, a.dest)
 

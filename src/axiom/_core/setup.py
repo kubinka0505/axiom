@@ -104,7 +104,11 @@ colors_loglevel = {
 
 # Custom formatter that colors levelname
 class ColorFormatter(logging.Formatter):
-	def format(self, record):
+	def format(
+		self,
+
+		record
+	):
 		color = colors_loglevel.get(record.levelname, "")
 		record.levelname = Fore.RESET + color + record.levelname + Fore.RESET
 
@@ -113,7 +117,11 @@ class ColorFormatter(logging.Formatter):
 class Logger:
 	_LEVELS = {"info", "warning", "error", "debug", "critical"}
 
-	def __init__(self, logger):
+	def __init__(
+		self,
+
+		logger
+	):
 		self.logger = logger
 
 	def log(
@@ -141,7 +149,11 @@ class Logger:
 
 		getattr(self.logger, level.lower(), self.logger.info)(msg)
 
-	def __getattr__(self, name):
+	def __getattr__(
+		self,
+
+		name
+	):
 		if name in self._LEVELS:
 			return lambda *args, **kwargs: self.log(
 				*args,

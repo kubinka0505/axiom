@@ -683,7 +683,10 @@ def log_estimates(
 #-=-=-=-#
 # Processing
 
-def convert_channels(signal: np.ndarray, channels: int, args) -> np.ndarray:
+def convert_channels(
+	signal: np.ndarray,
+	channels: int, args
+) -> np.ndarray:
 	"""
 	Convert the audio to the estimated number of channels.
 
@@ -958,7 +961,9 @@ def write_file(
 #-=-=-=-#
 # Helpers
 
-def clear_colored_text_file(path: str) -> str:
+def clear_colored_text_file(
+	path: str
+) -> str:
 	with open(path, "r", encoding = "UTF-8") as file:
 		content = file.read()
 
@@ -976,7 +981,9 @@ def clear_colored_text_file(path: str) -> str:
 
 	return path
 
-def _parse_bound(v) -> float:
+def _parse_bound(
+	v
+) -> float:
 	if isinstance(v, (int, float)):
 		if v == -1:
 			return float("inf")
@@ -996,7 +1003,14 @@ def _parse_bound(v) -> float:
 
 	return val
 
-def _parse_bands(input_map: str, delim_parts: str = ":", delim_vals: str = ",", max_sr: int = None) -> list:
+def _parse_bands(
+	input_map: str,
+
+	delim_parts: str = ":",
+	delim_vals: str = ",",
+
+	max_sr: int = None
+) -> list:
 	if not input_map:
 		return None
 
@@ -1026,7 +1040,10 @@ def _parse_bands(input_map: str, delim_parts: str = ":", delim_vals: str = ",", 
 
 	return bands
 
-def should_write_output(file_index: int, args) -> bool:
+def should_write_output(
+	file_index: int,
+	args
+) -> bool:
 	"""
 	Determine whether output should be written for a given audio file.
 
@@ -1074,7 +1091,10 @@ def should_write_output(file_index: int, args) -> bool:
 
 	return True
 
-def get_output_path(file: str, args) -> str:
+def get_output_path(
+	file: str,
+	args
+) -> str:
 	"""
 	Determine the output path for a processed audio file.
 

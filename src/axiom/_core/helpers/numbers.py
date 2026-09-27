@@ -1,70 +1,86 @@
 import re
 from numbers import Real
 
-def clamp(number: int | float, minimum: int | float, maximum: int | float) -> int | float:
+from typing import Union, Optional
+
+#-=-=-=-#
+
+def clamp(
+	number: Union[int, float],
+	minimum: Union[int, float],
+	maximum: Union[int, float]
+) -> Union[int, float]:
 	"""
 	Clamps the number to desired range.
 
 	Parameters
 	----------
-		number (int | float):
-			The clamped number.
+	number : Union[int, float]
+		The clamped number.
 
-		minimum (int | float):
-			The minimum value to clamp `number` to.
+	minimum : Union[int, float]
+		The minimum value to clamp `number` to.
 
-		maximum (int | float):
-			The maximum value to clamp `number` to.
+	maximum : Union[int, float]
+		The maximum value to clamp `number` to.
 
 	Returns
 	-------
-		int | float:
-			The clamped number.
+	Union[int, float]
+		The clamped number.
 	"""
 	return min(max(minimum, number), maximum)
 
-def percentage(percent: float, whole: float, rounding: int = 10) -> float:
+def percentage(
+	percent: float,
+	whole: float,
+	rounding: Optional[int] = 10
+) -> float:
 	"""
 	Calculates the percentage value of a part over a whole.
 
 	Parameters
 	----------
-		percent (float):
-			The part value.
+	percent : float
+		The part value.
 
-		whole (float):
-			The total or whole value.
+	whole : float
+		The total or whole value.
 
-		rounding (int, optional):
-			Number of decimal places to round the result.
+	rounding : Optional[int]
+		Number of decimal places to round the result.
 
 	Returns
 	-------
-		float:
-			The calculated percentage.
+	float
+		The calculated percentage.
 
-	Example
-	-------
-		>>> percentage(25, 200)
-		12.5
+	Examples
+	--------
+	>>> percentage(25, 200)
+	12.5
 	"""
 	return round((percent * 100) / whole, rounding)
 
-def to_readable(value: str | Real) -> int | float | None:
+def to_readable(
+	value: str | Real
+) -> int | float | None:
 	"""
 	Converts numeric-ish strings into numbers.
 
 	Examples
 	--------
-		- "2e2" -> 200
-		- "22.01k" -> 22010
-		- "5" -> 5
-		- "2.5" -> 2.5
-		- "1.25k" -> 1250
+	- "2e2" -> 200
+	- "22.01k" -> 22010
+	- "5" -> 5
+	- "2.5" -> 2.5
+	- "1.25k" -> 1250
 	"""
 	unitmap = {"k": 3, "m": 6, "g": 9}
 
-	def optimize(number: float) -> int | float:
+	def optimize(
+		number: float
+	) -> int | float:
 		return int(number) if number.is_integer() else number
 
 	if isinstance(value, Real):

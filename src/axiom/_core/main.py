@@ -22,27 +22,32 @@ import numpy as np
 import soundfile as sf
 from pathlib import Path
 
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 
 #-=-=-=-#
 
 class Axiom:
-	def __init__(self, filepaths: List[str | Path], recursive: bool = False) -> None:
+	def __init__(
+		self,
+
+		filepaths: List[str | Path],
+		recursive: bool = False
+	) -> None:
 		"""
 		Initialize with a list of file paths or directories, optionally recursively.
 
 		Parameters
 		----------
-			filepaths (list[str | Path]):
-				List of file or directory paths.
+		filepaths : list[str | Path]
+			List of file or directory paths.
 
-			recursive (bool):
-				Whether to recursively search directories.
+		recursive : bool
+			Whether to recursively search directories.
 
 		Raises
 		------
-			ValueError:
-				If no valid audio files are found or paths are invalid.
+		ValueError
+			If no valid audio files are found or paths are invalid.
 		"""
 		if isinstance(filepaths, (str, Path)):
 			filepaths = [filepaths]
@@ -74,7 +79,9 @@ class Axiom:
 		if not self.files:
 			raise ValueError("No valid audio files found.")
 
-	def _process_files(self,
+	def _process_files(
+		self,
+
 		start: str = None,
 		duration: str = None,
 		skip_each: int = 1,
@@ -224,6 +231,7 @@ class Axiom:
 
 	def sample_rate(
 		self,
+
 		start: str = None,
 		duration: str = None,
 		skip_each: int = 1,
@@ -244,32 +252,32 @@ class Axiom:
 
 		Parameters
 		----------
-			start (str):
-				Start time in seconds or timestamp string.
+		start : Optional[str]
+			Start time in seconds or timestamp string.
 
-			duration (str):
-				Duration in seconds or timestamp string.
+		duration : Optional[str]
+			Duration in seconds or timestamp string.
 
-			skip_each (int):
-				Amount of processed samples to skip.
+		skip_each : int
+			Amount of processed samples to skip.
 
-			---
+		---
 
-			checkpoint_path (str, optional):
-				Checkpoint path.
+		checkpoint_path : Optional[str]
+			Checkpoint path.
 
-			---
+		---
 
-			freq_step (int, optional):
-				Frequency step for estimation.
+		freq_step : Optional[int]
+			Frequency step for estimation.
 
-			show_graph: (bool, optional):
-				Show graph of sample rate estimation.
+		show_graph: Optional[bool]
+			Show graph of sample rate estimation.
 
 		Returns
 		-------
-			Dict[str, List[int]]:
-				Mapping of filename to estimated sample rate.
+		Dict[str, List[int]]
+			Mapping of filename to estimated sample rate.
 		"""
 		return self._process_files(
 			start,
@@ -297,6 +305,7 @@ class Axiom:
 
 	def bit_depth(
 		self,
+
 		start: int = None,
 		duration: str = None,
 		skip_each: int = 1
@@ -306,19 +315,19 @@ class Axiom:
 
 		Parameters
 		----------
-			start (str):
-				Start time in seconds or timestamp string.
+		start : Optional[str]
+			Start time in seconds or timestamp string.
 
-			duration (str):
-				Duration in seconds or timestamp string.
+		duration : Optional[str]
+			Duration in seconds or timestamp string.
 
-			skip_each (int):
-				Amount of processed samples to skip.
+		skip_each : int
+			Amount of processed samples to skip.
 
 		Returns
 		-------
-			Dict[str, int]:
-				Mapping of filename to bit depth.
+		Dict[str, int]
+			Mapping of filename to bit depth.
 		"""
 		return self._process_files(
 			start,
@@ -340,6 +349,7 @@ class Axiom:
 
 	def channels(
 		self,
+
 		start: int = None,
 		duration: str = None,
 		skip_each: int = 1
@@ -349,19 +359,19 @@ class Axiom:
 
 		Parameters
 		----------
-			start (str):
-				Start time in seconds or timestamp string.
+		start : Optional[str]
+			Start time in seconds or timestamp string.
 
-			duration (str):
-				Duration in seconds or timestamp string.
+		duration : Optional[str]
+			Duration in seconds or timestamp string.
 
-			skip_each (int):
-				Amount of processed samples to skip.
+		skip_each : int
+			Amount of processed samples to skip.
 
 		Returns
 		-------
-			dict[str, int]:
-				Mapping of filename to channel count.
+		dict[str, int]
+			Mapping of filename to channel count.
 		"""
 		return self._process_files(
 			start,
@@ -383,6 +393,7 @@ class Axiom:
 
 	def estimate(
 		self,
+
 		start: str = None,
 		duration: str = None,
 		skip_each: int = 1,
@@ -398,39 +409,40 @@ class Axiom:
 
 		Parameters
 		----------
-			start (str):
-				Start time in seconds or timestamp string.
+		start : Optional[str]
+			Start time in seconds or timestamp string.
 
-			duration (str):
-				Duration in seconds or timestamp string.
+		duration : Optional[str]
+			Duration in seconds or timestamp string.
 
-			skip_each (int):
-				Amount of processed samples to skip.
+		skip_each : int
+			Amount of processed samples to skip.
 
-			---
+		---
 
-			checkpoint_path (str, optional): Model path or identifier.
+		checkpoint_path : Optional[str]
+			Model path or identifier.
 
-			---
+		---
 
-			n_fft (int, optional):
-				FFT window size used in heuristic sample rate estimation.
+		n_fft : Optional[int]
+			FFT window size used in heuristic sample rate estimation.
 
-			freq_step (int, optional):
-				Frequency step for estimation.
+		freq_step : Optional[int]
+			Frequency step for estimation.
 
-			show_graph: (bool, optional):
-				Show graph of sample rate estimation.
+		show_graph : Optional[bool]
+			Show graph of sample rate estimation.
 
 		Returns
 		-------
-			Dict[str, Dict[str, Any]]:
-				Mapping of filename to a dict with keys:
-				- "samplerate",
-				- "cutoff",
-				- "channels",
-				- "bitrate",
-				- "peak".
+		Dict[str, Dict[str, Any]]
+			Mapping of filename to a dict with keys:
+			- "samplerate"
+			- "cutoff"
+			- "channels"
+			- "bitrate"
+			- "peak"
 		"""
 		return self._process_files(
 			start,

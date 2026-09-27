@@ -1,6 +1,12 @@
 from bisect import bisect_left, bisect_right
 
-def snap(value: float, options: list, left: bool = False) -> iter:
+#-=-=-=-#
+
+def snap(
+	value: float,
+	options: list,
+	left: bool = False
+) -> iter:
 	"""
 	Snaps a value to the next closest value in a sorted list of options.
 
@@ -8,24 +14,24 @@ def snap(value: float, options: list, left: bool = False) -> iter:
 
 	Parameters
 	----------
-		value (float):
-			The target value to be snapped.
+	value : float
+		The target value to be snapped.
 
-		left (bool):
-			Determines whether values are snapped to left or right element of an iterable.
+	left : bool
+		Determines whether values are snapped to left or right element of an iterable.
 
-		options (list):
-			A list of numeric values to snap to.
+	options : list
+		A list of numeric values to snap to.
 
 	Returns
 	-------
-		numeric:
-			The closest greater than or equal value in the list, or the maximum if none are greater.
+	numeric
+		The closest greater than or equal value in the list, or the maximum if none are greater.
 
-	Example
-	-------
-		>>> snap(200, [128, 192, 256])
-		256
+	Examples
+	--------
+	>>> snap(200, [128, 192, 256])
+	256
 	"""
 	func = bisect_left if left else bisect_right
 

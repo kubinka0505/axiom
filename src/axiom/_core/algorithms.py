@@ -4,7 +4,7 @@ import librosa
 import numpy as np
 import soundfile as sf
 from mutagen import File as mFile
-from typing import Optional
+from typing import Optional, Union
 
 from .setup import (
 	RATES_MP3_BIT,
@@ -37,34 +37,34 @@ class Estimators:
 
 		Parameters
 		----------
-			signal (np.ndarray):
-				Audio waveform, 1D or 2D (multi-channel).
+		signal : np.ndarray
+			Audio waveform, 1D or 2D (multi-channel).
 
-			sr (int):
-				Original sample rate.
+		sr : int
+			Original sample rate.
 
-			checkpoint_path (str):
-				Model checkpoint path for prediction.
+		checkpoint_path : str
+			Model checkpoint path for prediction.
 
-			n_fft (int):
-				FFT window size used in heuristic samplerate estimation.
+		n_fft : Optional[int]
+			FFT window size used in heuristic samplerate estimation.
 
-			device (str):
-				Device to run model on ("cpu" or "cuda").
+		device : str
+			Device to run model on ("cpu" or "cuda").
 
-			freq_step (Optional[int]):
-				Frequency step for heuristic cutoff heuristic.
+		freq_step : Optional[int]
+			Frequency step for heuristic cutoff heuristic.
 
-			show_graph (bool):
-				Whether to show graph for heuristic method.
+		show_graph : bool
+			Whether to show graph for heuristic method.
 
-			rounded (bool):
-				Whether to return integer instead of float.
+		rounded : bool
+			Whether to return integer instead of float.
 
 		Returns
 		-------
-			int:
-				Estimated sample rate.
+		int
+			Estimated sample rate.
 		"""
 		if signal.ndim == 2:
 			signal = np.mean(signal, axis = 0)
@@ -79,6 +79,7 @@ class Estimators:
 
 				show = show_graph
 			)
+
 			return sr if not c else 2 * (int(c) if rounded else c)
 
 		# moved to fasten load times
@@ -116,7 +117,7 @@ class Estimators:
 		max_depth: int = 32,
 
 		return_details: bool = False
-	) -> int | tuple[int | None, dict] | None:
+	) -> Union[int, tuple[int | None, dict], None]:
 		"""
 		Estimate effective bit depth of an audio signal. (ENOB)
 
@@ -127,13 +128,10 @@ class Estimators:
 
 		Returns
 		-------
-			int | None:
-				Estimated bit depth.
-
-			or (int | None, dict):
-				With diagnostics if return_details is True
+		Union[int, tuple[int | None, dict], None]
+			Estimated bit depth with diagnostics if `return_details` is True
 		"""
-		# 1. Preprocess
+		# preprocess
 		signal = np.asarray(signal)
 
 		if signal.ndim > 1:
@@ -143,16 +141,14 @@ class Estimators:
 
 		# normalize (important for comparability)
 		peak = np.max(np.abs(signal)) + 1e-12
-		signal = np.clip(signal / peak, -1.0, 1.0)
+		signal = np.clip(signal / peak, -1, 1)
 
 		signal_power = np.mean(signal ** 2) + 1e-12
 
 		# storage
 		results = []
 
-		# -------------------------
-		# 2. Scan bit depths
-		# -------------------------
+		# scan bit depths
 		for depth in range(min_depth, max_depth + 1):
 			max_int = 2 ** (depth - 1) - 1
 
@@ -173,9 +169,7 @@ class Estimators:
 
 			results.append((depth, mse, snr, snr_error))
 
-		# -------------------------
-		# 3. Choose best candidate
-		# -------------------------
+		# choose best candidate
 		# prioritize:
 		# - low SNR mismatch (most important)
 		# - then low noise
@@ -183,10 +177,9 @@ class Estimators:
 		best = min(results, key = lambda x: (x[3], x[1]))
 		best_depth = best[0]
 
-		# -------------------------
-		# 4. Optional LSB structure check
+		# optional LSB structure check
 		# detects real quantization steps (PCM-like signals)
-		# -------------------------
+
 		## Heuristic: detects whether signal has discrete quantization levels.
 		# 0.0 -> no visible quantization structure (noise-like / dithered)
 		# 1.0 -> strong PCM-like step structure
@@ -195,7 +188,7 @@ class Estimators:
 		signal_diff = np.diff(signal)
 
 		if len(signal_diff) < 10:
-			hist_score = 0.0
+			hist_score = 0
 
 		# histogram of step sizes
 		hist, _ = np.histogram(signal_diff, bins = 100, density = True)
@@ -205,14 +198,14 @@ class Estimators:
 		entropy = -np.sum(hist * np.log(hist))
 
 		# normalize entropy into 0..1 score
-		hist_score = 1.0 - (entropy / np.log(len(hist)))
-		hist_score = float(np.clip(hist_score, 0.0, 1.0))
+		hist_score = 1 - (entropy / np.log(len(hist)))
+		hist_score = float(np.clip(hist_score, 0, 1))
 
 		# adjust estimate slightly if strong quantization structure exists
 		if hist_score > 0.7:
 			best_depth = min(best_depth + 1, max_depth)
 
-		# 5. Output
+		# output
 		if return_details:
 			details = {
 				"best_snr": best[2],
@@ -225,26 +218,30 @@ class Estimators:
 
 		return best_depth
 
-	def channels(signal: np.ndarray, chunk_size: int = 2048, stereo_threshold: float = 0.05) -> int:
+	def channels(
+		signal: np.ndarray,
+		chunk_size: int = 2048,
+		stereo_threshold: float = 0.05
+	) -> int:
 		"""
 		Determine number of audio channels with higher precision.
 		Uses phase cancellation via pydub if available, otherwise falls back to chunk-based analysis.
 
 		Parameters
 		----------
-			signal (np.ndarray):
-				1D or 2D array.
+		signal : np.ndarray
+			1D or 2D array.
 
-			chunk_size (int):
-				Number of samples per analysis chunk (fallback mode).
+		chunk_size : int
+			Number of samples per analysis chunk (fallback mode).
 
-			stereo_threshold (float):
-				Fraction of chunks that must show stereo difference (fallback mode).
+		stereo_threshold : float
+			Fraction of chunks that must show stereo difference (fallback mode).
 
 		Returns
 		-------
-			int:
-				Number of channels (1 for mono, 2 for stereo, or more).
+		int
+			Number of channels (1 for mono, 2 for stereo, or more).
 		"""
 		# mono
 		if signal.ndim == 1:
@@ -264,7 +261,7 @@ class Estimators:
 			return Estimators._channels_chunking(signal, chunk_size, stereo_threshold)
 
 		signal_scaled = np.int16(
-			np.clip(signal, -1.0, 1.0) * 32767
+			np.clip(signal, -1, 1) * 32767
 		)
 
 		seg = AudioSegment(
@@ -286,12 +283,16 @@ class Estimators:
 
 		return 1
 
-	def _channels_chunking(signal: np.ndarray, chunk_size: int, stereo_threshold: float) -> int:
+	def _channels_chunking(
+		signal: np.ndarray,
+		chunk_size: int,
+		stereo_threshold: float
+	) -> int:
 		"""
-		Fallback method: chunk-based stereo detection.
+		Fallback method for chunk-based stereo detection.
 		"""
 		left, right = signal[:, 0], signal[:, 1]
-		signal = np.clip(signal * 10, -1.0, 1.0)
+		signal = np.clip(signal * 10, -1, 1)
 
 		stereo_chunks = 0
 		total_chunks = 0
@@ -333,22 +334,22 @@ class Estimators:
 
 		Parameters
 		----------
-			file (str):
-				Input file path.
+		file : str
+			Input file path.
 
-			sr (Optional[int]):
-				Sample rate in Hz.
+		sr : Optional[int]
+			Sample rate in Hz.
 
-			n_channels (Optional[int]):
-				Number of audio channels.
+		n_channels : Optional[int]
+			Number of audio channels.
 
-			bit_depth (Optional[int]):
-				Bit depth per sample. Ommited in FLAC files.
+		bit_depth : Optional[int]
+			Bit depth per sample. Ommited in FLAC files.
 
 		Returns
 		-------
-			int:
-				Bitrate in bits per second.
+		int
+			Bitrate in bits per second.
 		"""
 		bitrate = sr * n_channels * bit_depth
 		audio_fmt = os.path.splitext(file)[-1].strip(".").upper()
@@ -416,31 +417,35 @@ class Estimators:
 
 		return bitrate
 
-	def peak(signal: np.ndarray, unit: str = "dB", rounding: int = 5) -> float:
+	def peak(
+		signal: np.ndarray,
+		unit: str = "dB",
+		rounding: int = 5
+	) -> float:
 		"""
 		Get the peak level of a signal.
 
 		Parameters
 		----------
-			signal (np.ndarray):
-				Audio signal. Can be mono (1D) or multichannel (ND, last axis is samples).
+		signal : np.ndarray
+			Audio signal. Can be mono (1D) or multichannel (ND, last axis is samples).
 
-			unit (str):
-				"db" for decibels full scale (dBFS), "linear" for absolute amplitude.
+		unit : str
+			"db" for decibels full scale (dBFS), "linear" for absolute amplitude.
 
-			rounding (int):
-				Return value decimal precision.
+		rounding : int
+			Return value decimal precision.
 
 		Returns
 		-------
-			float:
-				Peak level. If unit starts with "dB", returns peak in dBFS (<= 0.0, 0.0 is full scale).
-				Otherwise if starts with "lin", returns max absolute sample value.
+		float
+			Peak level. If unit starts with "dB", returns peak in dBFS (<= 0.0, 0.0 is full scale).
+			Otherwise if starts with "lin", returns max absolute sample value.
 
 		Raises
 		------
-			ValueError:
-				If unit is not one of "db" or "linear".
+		ValueError
+			If unit is not one of "db" or "linear".
 		"""
 		# collapse channels if multichannel
 		peak_linear = np.max(np.abs(signal))
@@ -464,264 +469,255 @@ class Estimators:
 
 #-=-=-=-#
 
-def transform_contrast(img: np.ndarray, value: float) -> np.ndarray:
+def transform_contrast(
+	img:
+	np.ndarray, value: float
+) -> np.ndarray:
 	"""
 	Adjust contrast of an image represented as a float array in [0,1].
 
 	Parameters
 	----------
-		img (np.ndarray):
-			Input image array with values in [0,1].
-
-		value (float):
-			Contrast adjustment value in [-127, 127].
+	img : np.ndarray
+		Input image array with values in [0,1].
+	value : float
+		Contrast adjustment value in [-127, 127].
 
 	Returns
 	-------
-		np.ndarray:
-			Contrast-adjusted image clipped to [0,1].
+	np.ndarray
+		Contrast-adjusted image clipped to [0,1].
 	"""
-	C = np.clip(value, -127, 127)
-	factor = (259 * (C + 255)) / (255 * (259 - C))
+	c = np.clip(value, -127, 127)
+	factor = (259 * (c + 255)) / (255 * (259 - c))
 	img_adj = factor * (img - 0.5) + 0.5
 
-	return np.clip(img_adj, 0.0, 1.0)
+	return np.clip(img_adj, 0, 1)
+
+def compute_contrasted_spectrogram(
+	signal: np.ndarray,
+	sr: int,
+	contrast: float = 127.0,
+	n_fft: int = DEFAULT_VALUE_FFT,
+	hop_length: Optional[int] = None,
+	power: float = 2.0
+) -> np.ndarray:
+	"""Helper to compute normalized and contrast-adjusted magnitude spectrogram."""
+	if hop_length is None or hop_length <= 0:
+		hop_length = n_fft // 4
+
+	signal = np.asarray(signal, dtype = np.float32)
+	if signal.ndim == 2:
+		signal = np.mean(signal, axis = 0)
+
+	# compute magnitude STFT and convert to dB
+	stft = librosa.stft(signal, n_fft = n_fft, hop_length = hop_length, window = "hann")
+	s_mag = np.abs(stft) ** power
+	s_db = librosa.power_to_db(s_mag, ref = np.max)
+
+	# normalize to [0, 1] with fallback for silent audio
+	db_range = s_db.max() - s_db.min()
+	if db_range < 1e-6:
+		s_norm = np.zeros_like(s_db)
+	else:
+		s_norm = (s_db - s_db.min()) / db_range
+
+	return transform_contrast(s_norm, contrast)
+
+def detect_cutoff_index(
+	vertical_profile_flipped: np.ndarray,
+	step_size: int,
+	threshold: float = 1e-3
+) -> Optional[int]:
+	"""Fast non-visual top-down scanning algorithm."""
+	height = len(vertical_profile_flipped)
+	idx = 0
+
+	while idx < height:
+		if vertical_profile_flipped[idx] > threshold:
+			# Binary search backtrack to find precise onset edge
+			back_step = step_size / 2
+			refined_idx = float(idx)
+
+			while back_step >= 1:
+				candidate = int(round(refined_idx - back_step))
+
+				if candidate >= 0 and vertical_profile_flipped[candidate] > threshold:
+					refined_idx = float(candidate)
+
+				back_step /= 2
+
+			return int(round(refined_idx))
+
+		idx += step_size
+
+	return None
 
 def heuristic_cutoff(
 	signal: np.ndarray,
 	sr: int,
 
 	contrast: int = 127,
-	p: int = None,
+	p: Optional[int] = None,
 
-	n_fft: int = None,
-	hop_length: int = None,
+	n_fft: Optional[int] = None,
+	hop_length: Optional[int] = None,
 
 	power: int = 2,
-	show: bool = False
-) -> float:
-	f"""
+
+	show: bool = False,
+	output_dir: Optional[str] = None
+) -> Union[float, None]:
+	"""
 	Estimate cutoff frequency by scanning the contrast-enhanced spectrogram from top.
 
 	Parameters
 	----------
-		signal (np.ndarray):
-			Audio time series.
+	signal : np.ndarray
+		Audio time series.
+	sr : int
+		Sampling rate in Hz.
 
-		sr (int):
-			Sampling rate.
+	contrast : int
+		Contrast level in range [-127, 127].
+	p : Optional[int]
+		Initial vertical scan step in pixels.
 
-		---
+	n_fft : Optional[int]
+		FFT size (controls vertical frequency resolution).
+	hop_length : Optional[int]
+		Hop length for STFT.
 
-		contrast (int):
-			[-127, 127]
+	power : int
+		Power for magnitude spectrogram (2 for power, 1 for energy).
 
-		p (int):
-			Initial vertical step in pixels.
-			Truncated to `(sr / {STEP_CLAMP_VALUE}) - 1`
-
-		---
-
-		n_fft (int):
-			FFT size (controls vertical resolution)
-
-		hop_length (int):
-			Hop length for STFT; defaults to `n_fft // 4` if None
-
-		---
-
-		power:
-			Power for magnitude spectrogram (2 for power)
-
-		show (bool):
-			Shows image.
+	show : bool
+		If True, renders an animated scan visualization.
+	output_dir : Optional[str]
+		Directory to export frame PNGs if provided.
 
 	Returns
 	-------
-		float:
-			Approximate cutoff frequency in Hz.
+	Union[float, None]
+		Estimated cutoff frequency in Hz.
 	"""
-	import matplotlib as mpl
-	from random import randint
-	import matplotlib.pyplot as plt
+	n_fft = n_fft or DEFAULT_VALUE_FFT
 
-	if not n_fft:
-		n_fft = DEFAULT_VALUE_FFT
+	# resolve step size parameter p
+	default_p = max(1, int(sr / STEP_CLAMP_VALUE) - 1)
 
-	time_wait = 1.25
+	if p is None or p <= 0:
+		step_size = default_p
+	else:
+		step_size = max(1, min(p, default_p))
 
-	if not p or p < 0:
-		p = int(sr / STEP_CLAMP_VALUE) - 1
+	# Process spectrogram
+	spectrogram_contrasted = compute_contrasted_spectrogram(
+		signal, sr,
+		contrast = contrast,
+		n_fft = n_fft,
+		hop_length = hop_length,
+		power = power
+	)
 
-	p = min(int(sr / STEP_CLAMP_VALUE - 1), sr)
-
-	if not hop_length or hop_length < 0:
-		hop_length = n_fft // 4
-
-	signal = np.asarray(signal)
-
-	if signal.ndim == 2:
-		signal = np.mean(signal, axis = 0)
-
-	# compute magnitude spectrogram (power)
-	S = librosa.stft(signal, n_fft = n_fft, hop_length = hop_length, window = "hann")
-
-	# power spectrogram
-	S_mag = np.abs(S) ** power
-
-	# convert to dB
-	S_db = librosa.power_to_db(S_mag, ref = np.max)
-
-	# normalize to [0, 1]
-	S_norm = (S_db - S_db.min()) / (S_db.max() - S_db.min() + 1e-10)
-
-	# apply contrast
-	spectrogram_contrasted = transform_contrast(S_norm, contrast)
-
-	# collapse time by max to emphasize cutoff edge
+	# max-pool along time dimension to get frequency energy envelope
 	vertical_profile = np.max(spectrogram_contrasted, axis = 1)
-
-	# flip so index 0 is Nyquist
 	vertical_profile_flipped = vertical_profile[::-1]
 
-	height = vertical_profile_flipped.shape[0]
-	eps = 1e-3
+	height = len(vertical_profile_flipped)
 	nyq = sr / 2
-	freq_bin_width = nyq / (height - 1)
+	freq_bin_width = nyq / max(1, height - 1)
 
-	# visualization setup
-	if show:
-		font = "Arial"
-		mpl.rcParams["savefig.dpi"] = 200
-		mpl.rcParams["figure.dpi"] = int(mpl.rcParams["savefig.dpi"] / 2)
-		mpl.rcParams["font.family"] = "monospace"
-		mpl.rcParams["font.size"] = 11
-		mpl.rcParams["figure.facecolor"] = "none"
-		mpl.rcParams["axes.facecolor"] = "none"
+	# Fast path: compute result directly without GUI loop if show is False
+	if not show:
+		found_idx = detect_cutoff_index(vertical_profile_flipped, step_size)
+		return (nyq - found_idx * freq_bin_width) if found_idx is not None else None
 
-		plt.ion()
-		fig, ax = plt.subplots(figsize = (8, 6))
-		fig.canvas.manager.set_window_title("Heuristic Cutoff Scan " + str(randint(10000, 99999)))
+	import matplotlib as mpl
+	import matplotlib.pyplot as plt
 
-		ax.imshow(
-			spectrogram_contrasted[::-1, :],
-			aspect = "auto",
-			origin = "upper",
-			interpolation = "nearest",
-			cmap = "magma"
-		)
+	# Visualization path
+	font = "Arial"
+	mpl.rcParams["savefig.dpi"] = 200
+	mpl.rcParams["figure.dpi"] = 100
+	mpl.rcParams["font.family"] = "monospace"
+	mpl.rcParams["font.size"] = 11
 
-		ax.set_title(f"{nyq:.2f} Hz", fontsize = 13, fontname = font)
+	plt.ion()
+	fig, ax = plt.subplots(figsize = (8, 6))
 
-		num_vticks = min(5, height)
-		yticks_idx = np.linspace(0, height - 1, num_vticks, dtype = int)
-		yticks_freq = nyq - yticks_idx * freq_bin_width
+	ax.imshow(
+		spectrogram_contrasted[::-1, :],
+		aspect = "auto",
+		origin = "upper",
+		interpolation = "nearest",
+		cmap = "magma"
+	)
 
-		ax.set_yticks(yticks_idx)
-		ax.set_yticklabels([f"{f:.0f}" for f in yticks_freq])
-		ax.set_xticks([0, spectrogram_contrasted.shape[1] - 1])
-		ax.set_xticklabels(["0", str(signal.shape[0])])
-		ax.set_ylabel("Frequency (Hz)", fontname = font)
-		ax.set_xlabel("Sample index", fontname = font)
+	ax.set_title(f"{nyq:.2f} Hz", fontsize = 13, fontname = font)
+	yticks_idx = np.linspace(0, height - 1, min(5, height), dtype = int)
+	yticks_freq = nyq - yticks_idx * freq_bin_width
 
-		fig.canvas.draw()
-		fig.canvas.flush_events()
+	ax.set_yticks(yticks_idx)
+	ax.set_yticklabels([f"{f:.0f}" for f in yticks_freq])
+	ax.set_xticks([0, spectrogram_contrasted.shape[1] - 1])
+	ax.set_xticklabels(["0", str(len(signal))])
+	ax.set_ylabel("Frequency (Hz)", fontname = font)
+	ax.set_xlabel("Sample index", fontname = font)
 
-	# frame save setup
-	dst = "_AXIOM_FRAMES"
-	prefix = "frame"
-	ext = "png"
+	scan_line = ax.axhline(0, color = "cyan", linewidth = 1, label = "scan")
+	
+	if output_dir:
+		os.makedirs(output_dir, exist_ok = True)
 
-	if show and os.path.exists(dst):
-		for file in os.listdir(dst):
-			if file.lower().startswith(prefix.lower()) and file.lower().endswith(ext.lower()):
-				try:
-					os.remove(os.path.join(dst, file))
-				except OSError:
-					pass
-
-	def _save_fig(plot, dst: str, frame_count: int) -> str:
-		if show and os.path.exists(dst):
-			plot.savefig(
-				os.path.join(dst, f"{prefix}_{frame_count:04d}.{ext}"),
-				facecolor = "white",
-				transparent = False
-			)
-
-		return dst
-
+	frame_count = 1
 	idx = 0
 	found_idx = None
-	frame_count = 1
-
-	if show:
-		scan_line = ax.axhline(0, color = "cyan", linewidth = 1, label = "scan")
+	eps = 1e-3
 
 	while idx < height:
-		# live cutoff estimate
 		cutoff_hz = nyq - idx * freq_bin_width
+		ax.set_title(f"{cutoff_hz:.2f} Hz")
+		scan_line.set_ydata([idx, idx])
 
-		if show:
-			ax.set_title(f"{cutoff_hz:.2f} Hz")
-			scan_line.set_ydata([idx] * len(scan_line.get_xdata()))
-			fig.canvas.draw()
-			fig.canvas.flush_events()
-			plt.pause(0.005) # + time_wait / 2)
+		fig.canvas.draw_idle()
+		plt.pause(0.005)
 
-		_save_fig(plt, dst, frame_count)
-		frame_count += 1
+		if output_dir:
+			fig.savefig(os.path.join(output_dir, f"frame_{frame_count:04d}.png"), facecolor = "white")
+			frame_count += 1
 
-		val = vertical_profile_flipped[idx]
-		if val > eps:
-			# refine backtrack
-			back_step = p / 2
-			refined_idx = idx
+		if vertical_profile_flipped[idx] > eps:
+			back_step = step_size / 2
+			refined_idx = float(idx)
 
 			while back_step >= 1:
 				candidate = int(round(refined_idx - back_step))
 
-				if candidate < 0:
-					break
-
-				if vertical_profile_flipped[candidate] > eps:
-					refined_idx = candidate
+				if candidate >= 0 and vertical_profile_flipped[candidate] > eps:
+					refined_idx = float(candidate)
 
 				back_step /= 2
 
 			found_idx = int(round(refined_idx))
-			if show:
-				scan_line.set_ydata([found_idx] * len(scan_line.get_xdata()))
-				scan_line.set_color("lime")
-				scan_line.set_linewidth(2)
+			scan_line.set_ydata([found_idx, found_idx])
+			scan_line.set_color("lime")
+			scan_line.set_linewidth(2)
 
 			cutoff_hz = nyq - found_idx * freq_bin_width
-
-			if show:
-				ax.set_title(f"{cutoff_hz:.2f} Hz")
-
-				fig.canvas.draw()
-				fig.canvas.flush_events()
-
+			ax.set_title(f"{cutoff_hz:.2f} Hz")
+			fig.canvas.draw_idle()
 			plt.pause(0.01)
 
-			_save_fig(plt, dst, frame_count)
-			frame_count += 1
+			if output_dir:
+				fig.savefig(os.path.join(output_dir, f"frame_{frame_count:04d}.png"), facecolor = "white")
 
 			break
 
-		idx += int(round(p))
+		idx += step_size
 
-	if show:
-		plt.ioff()
-		plt.show(block = False)
-		plt.pause(time_wait)
-		plt.close(fig)
+	plt.ioff()
+	plt.pause(1)
+	plt.close(fig)
 
-	if found_idx is None:
-		return None
-
-	nyq = sr / 2
-	freq_bin_width = nyq / (height - 1)
-	cutoff_hz = nyq - found_idx * freq_bin_width
-
-	return cutoff_hz
+	return (nyq - found_idx * freq_bin_width) if found_idx is not None else None

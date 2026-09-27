@@ -2,15 +2,17 @@ from ..core import *
 from ..utils import *
 from ..vars import *
 
-#-=-=-=-#
-
 import os
 import time
 import torch
 import datetime
 from contextlib import suppress
 
-def main(args):
+#-=-=-=-#
+
+def main(
+	args
+):
 	device = "cuda" if torch.cuda.is_available() else "cpu"
 
 	if device == "cpu":

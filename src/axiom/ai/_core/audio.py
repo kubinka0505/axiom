@@ -6,10 +6,16 @@ from scipy.signal import butter, sosfilt
 #-=-=-=-#
 
 class Processor:
-	def __init__(self, signal: np.ndarray):
+	def __init__(
+		self,
+
+		signal: np.ndarray
+	):
 		self.signal = signal
 
-	def smooth(self) -> np.ndarray:
+	def smooth(
+		self
+	) -> np.ndarray:
 		self.signal = np.convolve(
 			self.signal,
 			np.array([0.25, 0.5, 0.25]),
@@ -18,7 +24,13 @@ class Processor:
 
 		return self.signal
 
-	def lowpass(self, sr: int, cutoff: float, order: int = 16) -> np.ndarray:
+	def lowpass(
+		self,
+
+		sr: int,
+		cutoff: float,
+		order: int = 16
+	) -> np.ndarray:
 		nyq = sr / 2
 		cutoff = min(cutoff, nyq)
 
@@ -32,7 +44,11 @@ class Processor:
 		self.signal = sosfilt(sos, self.signal)
 		return self.signal
 
-	def trim_silence(self, threshold: float) -> np.ndarray:
+	def trim_silence(
+		self,
+
+		threshold: float
+	) -> np.ndarray:
 		energy = np.abs(self.signal)
 		above = np.where(energy > threshold)[0]
 
@@ -47,7 +63,12 @@ class Processor:
 
 #-=-=-=-#
 
-def process_file(src: str, dst: str, target_sr_effective: int) -> str:
+def process_file(
+	src: str,
+	dst: str,
+
+	target_sr_effective: int
+) -> str:
 	signal, sr = sf.read(src, dtype = "float32")
 
 	if signal.ndim > 1:

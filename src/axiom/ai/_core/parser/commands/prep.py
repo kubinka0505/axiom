@@ -6,11 +6,19 @@ import argparse
 class Preprocessing:
 	name = "prep"
 
-	def __init__(self, formatter = argparse.ArgumentDefaultsHelpFormatter):
+	def __init__(
+		self,
+
+		formatter = argparse.ArgumentDefaultsHelpFormatter
+	):
 		self.formatter = formatter
 
 	# Parser builder
-	def add(self, subparsers):
+	def add(
+		self,
+
+		subparsers
+	):
 		prep = subparsers.add_parser(
 			self.name,
 			help = "Dataset preprocessing: resample audio and generate JSON labels.",
@@ -89,7 +97,12 @@ class Preprocessing:
 		return prep
 
 	# Validation + normalization
-	def validate(self, args, parser):
+	def validate(
+		self,
+
+		args,
+		parser
+	):
 		if not args.dataset:
 			parser.error("Dataset directory is required")
 

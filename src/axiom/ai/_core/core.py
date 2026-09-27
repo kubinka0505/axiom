@@ -19,9 +19,19 @@ warnings.filterwarnings("ignore", category = UserWarning, message = "TypedStorag
 
 logger = logging.getLogger(__name__)
 
+#-=-=-=-#
+
 class Architectures:
 	class ResidualBlock(nn.Module):
-		def __init__(self, in_ch, out_ch, stride = (1, 1), dropout = 0.0):
+		def __init__(
+			self,
+
+			in_ch,
+			out_ch,
+
+			stride = (1, 1),
+			dropout = 0
+		):
 			super().__init__()
 
 			self.conv1 = nn.Conv2d(
@@ -44,7 +54,11 @@ class Architectures:
 			else:
 				self.skip = nn.Identity()
 
-		def forward(self, x) -> torch.Tensor:
+		def forward(
+			self,
+
+			x
+		) -> torch.Tensor:
 			identity = self.skip(x)
 
 			x = F.gelu(self.norm1(self.conv1(x)))
@@ -72,26 +86,30 @@ class Architectures:
 
 		Input
 		-----
-			x (Tensor):
-				Input spectrogram tensor of shape `(B, 1, n_mels, T)`.
+		x : Tensor
+			Input spectrogram tensor of shape `(B, 1, n_mels, T)`.
 
-			lengths (Tensor, optional):
-				Original sequence lengths (in frames) before padding. Used for
-				masked temporal pooling.
+		lengths : Optional[Tensor]
+			Original sequence lengths (in frames) before padding. Used for
+			masked temporal pooling.
 
 		Returns
 		-------
-			Tensor:
-				Shape `(B, 1)` containing raw regression outputs. Any clipping
-				or post-processing should be applied outside the model.
+		Tensor
+			Shape `(B, 1)` containing raw regression outputs. Any clipping
+			or post-processing should be applied outside the model.
 		"""
-		def __init__(self, n_mels: Optional[int] = 128):
+		def __init__(
+			self,
+
+			n_mels: Optional[int] = 128
+		):
 			"""
 			Parameters
 			----------
-				n_mels (int, optional):
-					Number of mel frequency bins in the input spectrogram.
-					Default is 128.
+			n_mels : Optional[int]
+				Number of mel frequency bins in the input spectrogram.
+				Default is 128.
 			"""
 			super().__init__()
 
@@ -120,7 +138,12 @@ class Architectures:
 				nn.Linear(64, 1),
 			)
 
-		def forward(self, x, lengths = None) -> torch.Tensor:
+		def forward(
+			self,
+
+			x,
+			lengths = None
+		) -> torch.Tensor:
 			x = self.stem(x)
 			x = self.encoder(x)
 
@@ -150,7 +173,12 @@ class Architectures:
 #-=-=-=-#
 # Target scaling helpers
 
-def _cutoff_to_target(cutoff_hz: float, nyquist: float, min_hz: float = 20.0) -> float:
+def _cutoff_to_target(
+	cutoff_hz: float,
+	nyquist: float,
+
+	min_hz: float = 20.0
+) -> float:
 	"""
 	Map a cutoff frequency to a normalized log-scale target.
 
@@ -161,19 +189,19 @@ def _cutoff_to_target(cutoff_hz: float, nyquist: float, min_hz: float = 20.0) ->
 
 	Parameters
 	----------
-		cutoff_hz (float):
-			Cutoff frequency in Hz.
+	cutoff_hz : float
+		Cutoff frequency in Hz.
 
-		nyquist (float):
-			Nyquist frequency (sr / 2) for this sample.
+	nyquist : float
+		Nyquist frequency (sr / 2) for this sample.
 
-		min_hz (float):
-			Floor to avoid log(0); cutoffs below this are clamped up.
+	min_hz : float
+		Floor to avoid log(0); cutoffs below this are clamped up.
 
 	Returns
 	-------
-		float:
-			Normalized target in [0, 1].
+	float
+		Normalized target in [0, 1].
 	"""
 	cutoff_hz = max(float(cutoff_hz), min_hz)
 	log_min = np.log(min_hz)
@@ -183,7 +211,11 @@ def _cutoff_to_target(cutoff_hz: float, nyquist: float, min_hz: float = 20.0) ->
 	target = (log_val - log_min) / (log_max - log_min)
 	return float(np.clip(target, 0.0, 1.0))
 
-def _target_to_cutoff(target: float, nyquist: float, min_hz: float = 20.0) -> float:
+def _target_to_cutoff(
+	target: float,
+	nyquist: float,
+	min_hz: float = 20.0
+) -> float:
 	"""
 	Inverse of _cutoff_to_target — maps a normalized log-scale prediction
 	(possibly slightly outside [0, 1] from an unbounded model head) back
@@ -191,19 +223,19 @@ def _target_to_cutoff(target: float, nyquist: float, min_hz: float = 20.0) -> fl
 
 	Parameters
 	----------
-		target (float):
-			Normalized model output.
+	target : float
+		Normalized model output.
 
-		nyquist (float):
-			Nyquist frequency (sr / 2) for this sample.
+	nyquist : float
+		Nyquist frequency (sr / 2) for this sample.
 
-		min_hz (float):
-			Floor used symmetrically with _cutoff_to_target.
+	min_hz : float
+		Floor used symmetrically with _cutoff_to_target.
 
 	Returns
 	-------
-		float:
-			Estimated cutoff frequency in Hz, clamped to [min_hz, nyquist].
+	float
+		Estimated cutoff frequency in Hz, clamped to [min_hz, nyquist].
 	"""
 	target = float(np.clip(target, 0.0, 1.0))
 
@@ -218,20 +250,27 @@ def _target_to_cutoff(target: float, nyquist: float, min_hz: float = 20.0) -> fl
 # Dataset
 
 class CutoffDataset(Dataset):
-	def __init__(self, json_map_path: str, audio_dir: str, sample_length: Optional[float] = None):
+	def __init__(
+		self,
+		
+		json_map_path: str,
+		audio_dir: str,
+
+		sample_length: Optional[float] = None
+	):
 		"""
 		Dataset for audio files mapped to cutoff frequencies.
 
 		Parameters
 		----------
-			json_map_path (str):
-				Path to JSON file mapping filenames to cutoff frequencies.
+		json_map_path : str
+			Path to JSON file mapping filenames to cutoff frequencies.
 
-			audio_dir (str):
-				Directory containing audio files.
+		audio_dir : str
+			Directory containing audio files.
 
-			sample_length (Optional[float]):
-				Fixed length of audio samples in seconds; if None, use full length.
+		sample_length : Optional[float]
+			Fixed length of audio samples in seconds; if None, use full length.
 		"""
 		with open(json_map_path, "r") as f:
 			self.mapping = json.load(f)
@@ -272,32 +311,39 @@ class CutoffDataset(Dataset):
 
 		self.sample_length = sample_length
 
-	def __len__(self):
+	def __len__(
+		self
+	):
 		"""
 		Return number of audio samples.
 		"""
 		return len(self.keys)
 
-	def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
+	def __getitem__(
+		self,
+
+		idx: int
+	) -> Tuple[torch.Tensor, torch.Tensor, int]:
 		"""
 		Get the mel spectrogram, target cutoff frequency, and sample rate for an audio sample.
 
 		Parameters
 		----------
-			idx (int):
-				Index of the sample.
+		idx : int
+			Index of the sample.
 
 		Returns
 		-------
-			Tuple containing:
-				- x (torch.Tensor):
+		tuple:
+			Contains:
+				x : torch.Tensor
 					Mel spectrogram tensor of shape (1, freq, time).
 
-				- y_target (torch.Tensor):
+				y_target : torch.Tensor
 					Target cutoff, normalized on a log-frequency scale (scalar tensor).
 					See _cutoff_to_target.
 
-				- sr (int):
+				sr : int
 					Sample rate of the audio.
 		"""
 		fname = self.keys[idx]
@@ -321,7 +367,7 @@ class CutoffDataset(Dataset):
 		log_mel = (log_mel - log_mel.mean()) / (log_mel.std() + 1e-6)
 		x = torch.tensor(log_mel, dtype = torch.float32).unsqueeze(0) # (1, freq, time)
 
-		nyquist = sr / 2.0
+		nyquist = sr / 2
 
 		target = _cutoff_to_target(cutoff_hz, nyquist)
 
@@ -329,7 +375,9 @@ class CutoffDataset(Dataset):
 
 		return x, y_target, sr
 
-def pad_collate(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> tuple:
+def pad_collate(
+	batch: List[Tuple[torch.Tensor, torch.Tensor, int]]
+) -> List[tuple, ...]:
 	"""
 	Pads lengths in a batch along the time dimension for DataLoader compatibility.
 
@@ -340,33 +388,33 @@ def pad_collate(batch: List[Tuple[torch.Tensor, torch.Tensor, int]]) -> tuple:
 
 	Parameters
 	----------
-		batch (list of tuples):
-			A list of samples, where each sample is a tuple (x, y, sr):
+	batch : List[tuple, ...]
+		A list of samples, where each sample is a tuple (x, y, sr):
 
-			- x (torch.Tensor):
-				Input tensor of shape (1, freq, time).
+		x : torch.Tensor
+			Input tensor of shape (1, freq, time).
 
-			- y (torch.Tensor):
+			y : torch.Tensor
 				Target tensor (any shape).
 
-			- sr (int):
+			sr : int
 				Sample rate (passed through unchanged).
 
 	Returns
 	-------
-		tuple:
-			- x_batch (torch.Tensor):
-				Batched and padded input tensor of shape (B, 1, freq, max_time).
+	tuple
+		x_batch : torch.Tensor
+			Batched and padded input tensor of shape (B, 1, freq, max_time).
 
-			- y_batch (torch.Tensor):
-				Batched target tensor.
+		y_batch : torch.Tensor
+			Batched target tensor.
 
-			- srs (tuple):
-				Tuple of original sample rates for each sample in the batch.
+		srs : tuple
+			Tuple of original sample rates for each sample in the batch.
 
-	Example
-	-------
-		>>> loader = DataLoader(dataset, batch_size = 8, collate_fn = pad_collate)
+	Examples
+	--------
+	>>> loader = DataLoader(dataset, batch_size = 8, collate_fn = pad_collate)
 	"""
 	# batch: list of (x, y, sr)
 	xs, ys, srs = zip(*batch)
@@ -408,30 +456,30 @@ def train_epoch(
 
 	Parameters
 	----------
-		model (torch.nn.Module):
-			The PyTorch model to train.
+	model : torch.nn.Module
+		The PyTorch model to train.
 
-		loader (torch.utils.data.DataLoader):
-			DataLoader providing input and target batches.
+	loader : torch.utils.data.DataLoader
+		DataLoader providing input and target batches.
 
-		optimizer (torch.optim.Optimizer):
-			Optimizer used to update model parameters.
+	optimizer : torch.optim.Optimizer
+		Optimizer used to update model parameters.
 
-		device (torch.device):
-			Device on which to perform training (e.g., "cpu" or "cuda").
+	device : torch.device
+		Device on which to perform training (e.g., "cpu" or "cuda").
 
-		custom_name (str):
-			Name or label shown in the training progress bar.
+	custom_name : str
+		Name or label shown in the training progress bar.
 
 	Returns
 	-------
-		float:
-			Average loss across the entire dataset for this epoch.
+	float
+		Average loss across the entire dataset for this epoch.
 
-	Example
-	-------
-		>>> avg_loss = train_epoch(model, train_loader, optimizer, torch.device("cuda"), "Training")
-		>>> print(f"Epoch loss: {avg_loss:.4f}")
+	Examples
+	--------
+	>>> avg_loss = train_epoch(model, train_loader, optimizer, torch.device("cuda"), "Training")
+	>>> print(f"Epoch loss: {avg_loss:.4f}")
 	"""
 	model.train()
 
@@ -465,22 +513,22 @@ def eval_epoch(
 
 	Parameters
 	----------
-		model (torch.nn.Module):
-			The model to evaluate.
+	model : torch.nn.Module
+		The model to evaluate.
 
-		loader (DataLoader):
-			DataLoader providing evaluation batches.
+	loader : DataLoader
+		DataLoader providing evaluation batches.
 
-		device (torch.device):
-			Device to perform computation on.
+	device : torch.device
+		Device to perform computation on.
 
-		custom_name (str):
-			Description for progress bar.
+	custom_name : str
+		Description for progress bar.
 
 	Returns
 	-------
-		float:
-			Average loss over the dataset.
+	float
+		Average loss over the dataset.
 	"""
 	model.eval()
 
@@ -528,44 +576,44 @@ def fit(
 
 	Parameters
 	----------
-		model (nn.Module):
-			Model to train (moved to `device` internally if not already).
+	model : nn.Module
+		Model to train (moved to `device` internally if not already).
 
-		train_loader / val_loader (DataLoader):
-			Training and validation data loaders (expects pad_collate output).
+	train_loader / val_loader : DataLoader
+		Training and validation data loaders (expects pad_collate output).
 
-		device (torch.device):
-			Device to train on.
+	device : torch.device
+		Device to train on.
 
-		epochs (int):
-			Maximum number of epochs to run.
+	epochs : int
+		Maximum number of epochs to run.
 
-		lr (float):
-			Initial learning rate for Adam.
+	lr : float
+		Initial learning rate for Adam.
 
-		weight_decay (float):
-			L2 regularization strength.
+	weight_decay : float
+		L2 regularization strength.
 
-		checkpoint_path (str):
-			Where to save the best model's state_dict.
+	checkpoint_path : str
+		Where to save the best model's state_dict.
 
-		scheduler_patience (int):
-			Epochs with no val improvement before LR is reduced.
+	scheduler_patience : int
+		Epochs with no val improvement before LR is reduced.
 
-		scheduler_factor (float):
-			Multiplicative LR reduction factor when triggered.
+	scheduler_factor : float
+		Multiplicative LR reduction factor when triggered.
 
-		min_lr (float):
-			Floor for the LR scheduler.
+	min_lr : float
+		Floor for the LR scheduler.
 
-		early_stopping_patience (int):
-			Epochs with no val improvement before training stops.
+	early_stopping_patience : int
+		Epochs with no val improvement before training stops.
 
 	Returns
 	-------
-		dict:
-			History with "train_loss" and "val_loss" lists, plus the
-			epoch index of the best checkpoint.
+	dict
+		History with "train_loss" and "val_loss" lists, plus the
+		epoch index of the best checkpoint.
 	"""
 	model = model.to(device)
 	optimizer = torch.optim.Adam(model.parameters(), lr = lr, weight_decay = weight_decay)
@@ -631,16 +679,16 @@ def load_model(
 
 	Parameters
 	----------
-		checkpoint_path (str):
-			Path to the model checkpoint.
+	checkpoint_path : str
+		Path to the model checkpoint.
 
-		device (Union[str, torch.device]):
-			Device to load the model on.
+	device : Union[str, torch.device]
+		Device to load the model on.
 
 	Returns
 	-------
-		torch.nn.Module:
-			The loaded model in evaluation mode.
+	torch.nn.Module
+		The loaded model in evaluation mode.
 	"""
 	model = architecture().to(device)
 	model.load_state_dict(
@@ -662,22 +710,22 @@ def predict(
 
 	Parameters
 	-------
-		audio_path (Union[str, Path, tuple]):
-			Path to an audio file or a tuple (y, sr).
+	audio_path : Union[str, Path, tuple]
+		Path to an audio file or a tuple (y, sr).
 
-		model (Union[nn.Module, str, Path]):
-			Model instance or path to a checkpoint file.
+	model : Union[nn.Module, str, Path]
+		Model instance or path to a checkpoint file.
 
-		network (nn.Module):
-			Architecture.
+	network : nn.Module
+		Architecture.
 
-		device (Union[str, torch.device]):
-			Device for model inference.
+	device : Union[str, torch.device]
+		Device for model inference.
 
 	Returns
 	-------
-		float:
-			Estimated cutoff frequency in Hz.
+	float
+		Estimated cutoff frequency in Hz.
 	"""
 	if isinstance(audio_path, str):
 		y, sr = librosa.load(audio_path, sr = None, mono = True)

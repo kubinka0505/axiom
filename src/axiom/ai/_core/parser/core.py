@@ -12,7 +12,9 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawTextHe
 #-=-=-=-#
 
 class CLI:
-	def __init__(self):
+	def __init__(
+		self
+	):
 		self.parser = argparse.ArgumentParser(
 			description = "AI cli",
 			formatter_class = CustomFormatter,
@@ -46,7 +48,9 @@ class CLI:
 			self.command_map[cmd.name] = cmd
 
 	# main entry
-	def parse_args(self):
+	def parse_args(
+		self
+	):
 		args = self.parser.parse_args()
 
 		cmd = self.command_map.get(args.mode)

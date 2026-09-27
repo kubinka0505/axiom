@@ -9,11 +9,19 @@ from ...vars import EXTENSIONS_AUDIO, EXTENSIONS_CKPTS
 class Inference:
 	name = "infer"
 
-	def __init__(self, formatter = argparse.ArgumentDefaultsHelpFormatter):
+	def __init__(
+		self,
+
+		formatter = argparse.ArgumentDefaultsHelpFormatter
+	):
 		self.formatter = formatter
 
 	# Parser builder
-	def add(self, subparsers):
+	def add(
+		self,
+
+		subparsers
+	):
 		infer = subparsers.add_parser(
 			self.name,
 			help = "Run inference on audio files using a trained checkpoint.",
@@ -52,7 +60,11 @@ class Inference:
 		return infer
 
 	# Validation + resolution logic
-	def validate(self, args, parser):
+	def validate(
+		self,
+		
+		args, parser
+	):
 		if not args.file_input:
 			parser.error("Input path is required")
 

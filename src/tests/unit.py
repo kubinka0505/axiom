@@ -194,7 +194,7 @@ class TestEstimatorsSampleRate:
 		sig = white_noise(sr) # 1 second of white noise at this rate
 		estimated = Estimators.sample_rate(sig, sr, checkpoint_path = None, rounded = False)
 
-		# estimation, not an exact reproduction -> range checks, not == 
+		# estimation, not an exact reproduction -> range checks, not ==
 		assert estimated > 0
 		assert estimated >= sr * 0.5
 		assert estimated <= sr * 1.5

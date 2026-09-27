@@ -1,19 +1,22 @@
-def hex2ansi(hexcode: str, fore: bool = True) -> str:
+def hex2ansi(
+	hexcode: str,
+	fore: bool = True
+) -> str:
 	"""
 	Return ANSI escape code for 24-bit color from a hex code string.
 
 	Parameters
 	----------
-		hexcode (str):
-			Hex color code, e.g. "fc0", "#ffcc00", "F6A".
+	hexcode : str
+		Hex color code, e.g. "fc0", "#ffcc00", "F6A".
 
-		fore (bool):
-			If True, produce a foreground code (38;2); otherwise background (48;2).
+	fore : bool
+		If True, produce a foreground code (38;2); otherwise background (48;2).
 
 	Returns
 	-------
-		str:
-			ANSI escape sequence for that color.
+	str
+		ANSI escape sequence for that color.
 	"""
 	hexcode = hexcode.strip().lstrip("#")
 

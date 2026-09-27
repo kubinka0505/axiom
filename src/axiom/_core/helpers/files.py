@@ -3,27 +3,31 @@ from ..setup import EXTENSIONS_DISPLAY
 import os
 from pathlib import Path
 
-def file_size(obj) -> str:
+#-=-=-=-#
+
+def file_size(
+	obj
+) -> str:
 	"""
 	Outputs the size of the file at the given object in a human-readable format.
 	
 	Parameters
 	----------
-		obj:
-			The path to the file or bytes.
+	obj
+		The path to the file or bytes.
 	
 	Returns
 	-------
-		str:
-			File size as a string with appropriate unit (e.g., "10.5 MB").
-	
+	str
+		File size as a string with appropriate unit (e.g., "10.5 MB").
+
 	Raises
 	------
-		FileNotFoundError:
-			If the file could not be found.
+	FileNotFoundError
+		If the file could not be found.
 
-		ValueError:
-			If the path is not a file.
+	ValueError
+		If the path is not a file.
 	"""
 	if isinstance(obj, str):
 		if not os.path.exists(obj):
@@ -50,30 +54,29 @@ def file_size(obj) -> str:
 
 	return " ".join((size_bytes, units[index]))
 
-def package_search(query: str, variable: str = "PATH") -> str:
+def package_search(
+	query: str,
+	variable: str = "PATH"
+) -> str:
 	"""
 	Search for a package.
 
 	Parameters
 	----------
-		query (str)
+	query : str
+		Query to look for.
 
-		variable (str):
-			Environment variable to look for package.
+	variable : str
+		Environment variable to look for package.
 
-	Windows
-	-------
-		On windows, searches variable's entries for PE executables (MZ header).
-
-	Linux
-	-----
-		Checks whether an APT package is installed.
+		Windows: Searches variable's entries for PE executables (MZ header).
+		Linux: Checks whether an APT package is installed.
 
 	Returns
 	-------
-		str:
-			Absolute path to the executable/package name.
-			Empty string if nothing was found.
+	str
+		Absolute path to the executable/package name.
+		Empty string if nothing was found.
 	"""
 	query = query.lower().strip()
 
@@ -129,24 +132,26 @@ def package_search(query: str, variable: str = "PATH") -> str:
 
 	return ""
 
-def choose_files_dialog(initialdir: str = os.getcwd()) -> list:
+def choose_files_dialog(
+	initialdir: str = os.getcwd()
+) -> list:
 	"""
 	Open a files selection dialog for choosing audio files.
 
 	Parameters
 	----------
-		initialdir (str):
-			Initial directory to open.
+	initialdir : str
+		Initial directory to open.
 
 	Returns
 	-------
-		str:
-			Normalized path to the selected files.
+	list
+		Normalized paths of the selected files.
 
 	Raises
 	------
-		Exception:
-			If no files are selected or if dialog fails.
+	Exception
+		If no files are selected or if dialog fails.
 	"""
 	from tkinter import Tk, filedialog
 
