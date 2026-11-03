@@ -144,19 +144,19 @@ class Axiom:
 				max_duration = n_frames,
 			)
 
-			# NORMALIZE EARLY (stable estimators + gating) ---
-			signal_cf = signal_cf / (np.max(np.abs(signal_cf)) + 1e-12)
+			# NORMALIZE EARLY (stable estimators + gating)
+			signal_cf_max = signal_cf / (np.max(np.abs(signal_cf)) + 1e-12)
 
 			# EXTEND AFTER NORMALIZATION
 			target_len = int(min(SAMPLE_MIN_EXTEND, SAMPLE_LARGE))
 
-			if signal_cf.shape[-1] < target_len:
-				signal_cf = extend_signal(signal_cf, target_len)
+			if signal_cf_max.shape[-1] < target_len:
+				signal_cf_max = extend_signal(signal_cf_max, target_len)
 
 			# SPECTRAL GATE (AFTER FIXING SHAPE)
 			if spectral_gate_cutoff_db is not None:
-				signal_cf = spectral_gate(
-					signal_cf,
+				signal_cf_max = spectral_gate(
+					signal_cf_max,
 					sr,
 					cutoff = spectral_gate_cutoff_db,
 					bands = spectral_gate_bands
@@ -164,10 +164,11 @@ class Axiom:
 
 			# back to (frames, channels) for Estimators
 			signal_trimmed = signal_cf.T
+			signal_trimmed_max = signal_cf_max.T
 
 			if trim_threshold_start is not None and trim_threshold_end is not None:
-				signal_trimmed = truncate_signal(
-					signal_trimmed,
+				signal_trimmed_max = truncate_signal(
+					signal_trimmed_max,
 					threshold_start = trim_threshold_start,
 					threshold_end = trim_threshold_end
 				)
@@ -177,7 +178,7 @@ class Axiom:
 			# SAMPLERATE
 			if include_samplerate:
 				estimated_sr = Estimators.sample_rate(
-					signal_trimmed,
+					signal_trimmed_max,
 					sr,
 					checkpoint_path = checkpoint_path,
 					n_fft = n_fft,
@@ -193,7 +194,7 @@ class Axiom:
 
 			# BIT DEPTH
 			if include_bit_depth:
-				estimated_bit_depth = Estimators.bit_depth(signal_trimmed)
+				estimated_bit_depth = Estimators.bit_depth(signal_trimmed_max)
 				estimated_bit_depth = estimated_bit_depth if estimated_bit_depth else bit_depth
 
 				result.update({
@@ -202,7 +203,7 @@ class Axiom:
 				})
 
 			# CHANNELS
-			estimated_channels = Estimators.channels(signal_trimmed)
+			estimated_channels = Estimators.channels(signal_trimmed_max)
 
 			if include_channels:
 				result.update({"channels": estimated_channels})
