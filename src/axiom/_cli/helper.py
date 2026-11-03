@@ -359,7 +359,7 @@ def process_file(
 		estimated_peak = ""
 	else:
 		logger.debug("Estimating peak")
-		estimated_peak = Estimators.peak(signal_trimmed_max, "dB", 3)
+		estimated_peak = Estimators.peak(signal_trimmed, "dB", 3)
 
 	#-=-=-=-#
 
@@ -831,7 +831,6 @@ def write_file(
 
 		if bitrate not in RATES_MP3_BIT:
 			bitrate = snap(bitrate, RATES_MP3_BIT)
-
 	elif extension == "ogg":
 		bit_depth = None
 
@@ -847,12 +846,12 @@ def write_file(
 	subtype = bit_depth_to_subtype(bit_depth, extension)
 
 	# normalize
-	if normalize is not None:
-		peak = Estimators.peak(signal, "dB")
+	peak = Estimators.peak(signal, "dB")
 
-		if peak is not None:
-			gain_linear = 10 ** ((normalize - peak) / 20)
-			signal *= gain_linear
+	if normalize is not None:
+		#and peak is not None:
+		gain_linear = 10 ** ((normalize - peak) / 20)
+		signal *= gain_linear
 
 	# PyDub path (unchanged but safe)
 	if AVAILABLE_PYDUB and extension in ("mp3", "ogg"):
