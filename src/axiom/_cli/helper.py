@@ -187,7 +187,7 @@ def process_file(
 		for band in parsed_bands:
 			logger.info("Spectral gate bands",
 				str(parsed_bands.index(band) + 1)
-				+ " → ".join((str(x) for x in band))
+				+ " -> ".join((str(x) for x in band))
 				+ " [Hz]"
 			)
 
@@ -479,7 +479,7 @@ def process_file(
 			"({color_size}{size}{reset}) "
 			"({color_meta}{diff_op}{difference_size}{reset}) "
 			"({color_meta}{diff_op}{perc_size}%{reset})".format(
-				out_path = output_path,
+				out_path = os.path.relpath(output_path, os.getcwd()),
 
 				size = file_size(output_path),
 
@@ -942,7 +942,11 @@ def write_file(
 
 	if not args.no_optimize:
 		logger.info("Attempting to optimize file")
-		output_path = optimize_file_audio(output_path)
+
+		try:
+			output_path = optimize_file_audio(output_path)
+		except OSError as e:
+			logger.error("An exception occured: {e}")
 
 	# metadata
 	if tags is not None:
